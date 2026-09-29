@@ -7,6 +7,8 @@ import {
   stepGame,
   taskInstructions,
   taskNames,
+  currentSector,
+  SECTORS,
 } from "./game/engine.ts";
 import type { Game } from "./game/engine.ts";
 import { readRuns, saveRun } from "./game/storage.ts";
@@ -217,8 +219,10 @@ export default function App() {
     tutorial: "Тренировочный полёт",
     ready: "Всё готово",
     playing: "Миссия",
+    interlude: "Система восстановлена",
     result: "Итоги миссии",
   }[game.phase];
+  const sector = currentSector(game);
   const currentTask =
     game.task === "carry" ? 0 : game.task === "charge" ? 1 : 2;
 
@@ -443,7 +447,7 @@ export default function App() {
                 <span>МОДУЛИ</span>
                 <b>
                   {game.module}
-                  <small>/3</small>
+                  <small>/{SECTORS.length}</small>
                 </b>
               </div>
               <div>
@@ -455,7 +459,9 @@ export default function App() {
                   {game.paused && game.phase === "playing" ? "ПАУЗА" : "ВРЕМЯ"}
                 </span>
                 <b>
-                  {game.phase === "playing" || game.phase === "result"
+                  {game.phase === "playing" ||
+                  game.phase === "interlude" ||
+                  game.phase === "result"
                     ? Math.ceil(game.remaining / 1000)
                     : "90"}
                   <small>с</small>
@@ -463,6 +469,45 @@ export default function App() {
               </div>
             </div>
           </div>
+          {(game.phase === "tutorial" ||
+            game.phase === "ready" ||
+            game.phase === "playing" ||
+            game.phase === "interlude") &&
+            !loading &&
+            !error && (
+              <div className="sector-status">
+                <div className="sector-identity">
+                  <span className="mono">
+                    {game.phase === "tutorial"
+                      ? "ОБУЧЕНИЕ"
+                      : `СИСТЕМА ${String(game.module + 1).padStart(2, "0")} / 03`}
+                  </span>
+                  <strong>{sector.name}</strong>
+                  <small>{sector.goal}</small>
+                </div>
+                <div className="sector-steps" aria-label="Этапы восстановления">
+                  {(["carry", "charge", "clear"] as const).map(
+                    (task, index) => (
+                      <span
+                        key={task}
+                        className={
+                          index < currentTask
+                            ? "done"
+                            : index === currentTask
+                              ? "current"
+                              : ""
+                        }
+                        title={taskNames[task]}
+                      />
+                    ),
+                  )}
+                </div>
+                <div className="combo-readout">
+                  <span className="mono">СЕРИЯ</span>
+                  <b>x{game.combo}</b>
+                </div>
+              </div>
+            )}
           <div className="game-column">
             {loading || error ? (
               <div className="playfield loading-field">
@@ -659,6 +704,11 @@ export default function App() {
                   <p className="task-description">
                     <b>{taskNames[game.task]}</b>
                     {taskInstructions[game.task]}
+                    {game.phase === "playing" &&
+                    game.task === "clear" &&
+                    game.swipesLeft > 1
+                      ? " В последнем модуле нужно очистить два потока."
+                      : ""}
                   </p>
                 )}
               </section>

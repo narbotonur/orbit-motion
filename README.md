@@ -4,7 +4,7 @@
 
 Browser camera game for ADMIT HACKATHON, Motion qualifier, September 28–30, 2026 (Astana, UTC+5).
 
-Restore an orbital station using three hand gestures: pinch to carry a power cell, open palm to charge, open-hand swipe to clear debris. A 90-second mission follows calibration and hands-free practice. No account required.
+Restore an orbital station using three hand gestures: pinch to carry a power cell, open palm to charge, open-hand swipe to clear debris. A 90-second mission follows calibration and hands-free practice. Its three systems have different spatial targets, charge times and debris lanes; the final system needs two sweeps. No account required.
 
 ## Why this exists
 
@@ -48,8 +48,8 @@ npm run preview
    - **Pinch:** move the hand cursor onto the energy cell on the left, join thumb and index fingertips, carry it to the right-hand port, then release.
    - **Open palm:** straighten all four fingers and keep the cursor in the port until its ring fills.
    - **Swipe:** sweep an open hand from left to right **on the mirrored screen**.
-4. Close/lower the hand once, then hold an open palm over the start target. Repair three modules in 90 seconds.
-5. See score, modules repaired, active time and correction prompts. Close/lower the hand and dwell over **Ещё миссия** to replay.
+4. Close/lower the hand once, then hold an open palm over the start target. Repair **communications → navigation → life support** in 90 seconds of active play. Targets move between systems; charge times increase. Sweep through the highlighted upper/lower lane. Life support needs two sweeps.
+5. See score, completion rank, best combo and correction prompts. Close/lower the hand and dwell over **Ещё миссия** to replay.
 
 Use a well-lit room, one hand, and a stable camera around face height. Either hand can control the cursor. You can play seated. On phones, use the front camera and prop the device up; do not hold it in the controlling hand. Mouse controls for sound, fullscreen and exit are optional. Exit stops the camera.
 
@@ -69,9 +69,10 @@ This is implemented in the game, not a separate demo or a generic recognition fa
 | Swipe in reverse                               | Move left to right on the screen                                                                                         |
 | Diagonal swipe                                 | Move horizontally, not up or down                                                                                        |
 | Short/slow swipe                               | Continue farther to the right in one sweep                                                                               |
+| Correct swipe outside the highlighted lane     | Aim through the marked upper or lower lane; the task stays active                                                        |
 | Hand too small, too large, clipped, or missing | Move closer, farther away, inward, or show the whole hand respectively                                                   |
 
-Amber feedback highlights corrections; the camera skeleton, gesture label, cursor, progress ring and task state show what the system sees. Tracking loss pauses the mission timer and returns any carried cell; it never falsely counts as a successful release. Background tabs also pause active play. Persistent corrections are counted in the result, but are not a biometric accuracy measure.
+Amber feedback highlights corrections; the camera skeleton, gesture label, cursor, progress ring and task state show what the system sees. Tracking loss pauses the mission timer and returns any carried cell; it never falsely counts as a successful release. Background tabs also pause active play. Early drops and wrong-lane sweeps count immediately; other corrections count after 800 ms if they persist. This number is gameplay feedback, not a biometric accuracy measure.
 
 ## Recognition and architecture
 
@@ -85,16 +86,16 @@ MediaPipe supplies landmarks only. **Our code** implements gesture classificatio
 - `src/vision/worker.ts`: CPU/WASM inference off the UI thread, one hand.
 - `src/vision/camera.ts`: camera lifecycle, bounded frame pipeline (at most 20 FPS), failures and recovery.
 - `src/vision/gestures.ts`: mirrored cursor smoothing; palm-normalized pinch thresholds 0.30 / 0.48; four-finger extension; swipe displacement > 0.23 over 100–700 ms, vertical travel < 0.15, 1-second cooldown.
-- `src/game/engine.ts`: calibration → practice → ready → mission → result/replay. Charge 1.4 seconds; start/replay dwell 1.3 seconds.
+- `src/game/engine.ts`: calibration → practice → ready → three systems with automatic chapter transitions → result/replay. Charge 1.4, 1.8 and 2.1 seconds; start/replay dwell 1.3 seconds.
 - `src/game/storage.ts`: up to eight results in localStorage, graceful fallback if blocked.
 - `src/ui/Board.tsx`: original SVG station, targets, progress and feedback.
 
-Scoring: cell 100, charge 100, debris 150 points per module; successful completion adds 5 points per whole second remaining. Incomplete missions retain earned task points. The record is **local to this browser**, not a secure global leaderboard. Tracking-loss pauses prioritize accessibility over competitive time enforcement.
+Scoring: cell 100, charge 100, debris 150 base points; the extra final sweep earns 50. Each successful task increases a combo multiplier by 0.25, up to 2×; an early drop or persistent correction resets the combo. Successful completion adds 5 points per whole second remaining. Rank S requires a complete run, no corrections and at least 45 seconds remaining; A requires at most two corrections and 20 seconds remaining; B covers other completed runs with at most five corrections; C covers remaining runs. Incomplete missions retain earned points. The record is **local to this browser**, not a secure global leaderboard. Tracking-loss pauses prioritize accessibility over competitive time enforcement.
 
 ## Checks
 
 ```sh
-npm test                       # 13 deterministic gesture/state tests
+npm test                       # deterministic gesture/state tests
 npm run build                  # TypeScript + production bundle
 npx playwright install chromium
 npm run test:e2e                # real WASM init + injected-observation UI flow
@@ -123,3 +124,4 @@ Production WASM startup has also been checked in Chrome against `npm run preview
 - Orbit mark, station drawing, layout implementation, game and rule-based gesture logic were created for this entry. Earlier OYSAN contribution is limited to the fonts/palette/design conventions disclosed above.
 
 The competition submission description is in [docs/SUBMISSION.md](docs/SUBMISSION.md).
+The open-source game comparison and design decision are in [docs/RESEARCH.md](docs/RESEARCH.md). We used references for ideas, with no third-party game code or artwork imported.

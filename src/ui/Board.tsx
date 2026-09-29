@@ -1,4 +1,11 @@
-import { DOCK, REPLAY, SOURCE, taskNames } from "../game/engine.ts";
+import {
+  REPLAY,
+  SECTORS,
+  currentSector,
+  gradeGame,
+  swipeLane,
+  taskNames,
+} from "../game/engine.ts";
 import type { Game } from "../game/engine.ts";
 import type { Observation } from "../vision/gestures.ts";
 import { Icon, OrbitMark } from "./Icons.tsx";
@@ -113,7 +120,14 @@ export function Board({
   const mode = game.phase;
   const tutorial = mode === "tutorial";
   const tasking = tutorial || mode === "playing";
-  const holdDuration = mode === "calibration" ? 900 : tasking ? 1400 : 1300;
+  const sector = currentSector(game);
+  const lane = swipeLane(game);
+  const holdDuration =
+    mode === "calibration"
+      ? 900
+      : tasking && game.task === "charge"
+        ? sector.chargeMs
+        : 1300;
   const progress = Math.min(1, game.hold / holdDuration);
   return (
     <div
@@ -143,7 +157,9 @@ export function Board({
             ? "TRAINING"
             : mode === "playing"
               ? "LIVE MISSION"
-              : "HAND CONTROL"}
+              : mode === "interlude"
+                ? "SYSTEM ONLINE"
+                : "HAND CONTROL"}
         </span>
       </div>
       {tasking && (
@@ -159,12 +175,16 @@ export function Board({
                 preserveAspectRatio="none"
                 aria-hidden="true"
               >
-                <path d="M230 590 C410 720 490 290 700 460" />
-                <path d="m665 445 35 15-23 28" />
+                <path
+                  d={`M${sector.source.x * 1000} ${sector.source.y * 1000} C${sector.source.x * 1000 + 140} ${sector.source.y * 1000 + 120} ${sector.dock.x * 1000 - 140} ${sector.dock.y * 1000 - 120} ${sector.dock.x * 1000} ${sector.dock.y * 1000}`}
+                />
+                <path
+                  d={`M${sector.dock.x * 1000 - 30} ${sector.dock.y * 1000 - 20} L${sector.dock.x * 1000} ${sector.dock.y * 1000} L${sector.dock.x * 1000 - 30} ${sector.dock.y * 1000 + 20}`}
+                />
               </svg>
               <div
                 className="source-label"
-                style={{ ...place(SOURCE), marginTop: "-58px" }}
+                style={{ ...place(sector.source), marginTop: "-58px" }}
               >
                 ЭНЕРГОЯЧЕЙКА
               </div>
@@ -179,7 +199,7 @@ export function Board({
           {game.task !== "clear" && (
             <div
               className={`dock ${game.task === "charge" ? "charging" : ""}`}
-              style={place(DOCK)}
+              style={place(sector.dock)}
             >
               <svg viewBox="0 0 100 100" aria-hidden="true">
                 <circle cx="50" cy="50" r="46" className="track" />
@@ -199,10 +219,13 @@ export function Board({
             </div>
           )}
           {game.task === "clear" && (
-            <div className="debris-zone">
+            <div className="debris-zone" style={{ top: `${lane * 100}%` }}>
               <div className="debris d1" />
               <div className="debris d2" />
               <div className="debris d3" />
+              <span className="debris-count">
+                ПОТОКОВ ОСТАЛОСЬ: {game.swipesLeft}
+              </span>
               <div className="swipe-guide">
                 <Icon name="swipe" size={38} />
                 <span>Проведи вправо</span>
@@ -212,7 +235,9 @@ export function Board({
           )}
           <div className="field-bottom">
             <span>{String(game.module + 1).padStart(2, "0")} / 03</span>
-            <span>{taskNames[game.task]}</span>
+            <span>
+              {sector.name} · {taskNames[game.task]}
+            </span>
           </div>
         </>
       )}
@@ -261,11 +286,30 @@ export function Board({
           </small>
         </div>
       )}
+      {mode === "interlude" && (
+        <div className="field-center sector-interlude">
+          <Station repaired={game.module} />
+          <span className="tag dark-tag">
+            СИСТЕМА {String(game.module).padStart(2, "0")} / 03 ВОССТАНОВЛЕНА
+          </span>
+          <h2>{SECTORS[game.module - 1].name} работает.</h2>
+          <p>Следующая цель — {sector.goal.toLowerCase()}.</p>
+          <div className="interlude-track">
+            <span
+              style={{
+                width: `${(1 - game.interludeRemaining / 1800) * 100}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
       {mode === "result" && (
         <div className="field-center results">
           <OrbitMark size={48} />
           <span className="tag dark-tag">
-            {game.finished ? "СВЯЗЬ ВОССТАНОВЛЕНА" : "ВРЕМЯ МИССИИ ИСТЕКЛО"}
+            {game.finished
+              ? `ВСЕ СИСТЕМЫ ВОССТАНОВЛЕНЫ · РАНГ ${gradeGame(game)}`
+              : `ВРЕМЯ МИССИИ ИСТЕКЛО · РАНГ ${gradeGame(game)}`}
           </span>
           <h2>
             {game.finished
@@ -281,7 +325,7 @@ export function Board({
               <b>{game.module}/3</b> модуля
             </span>
             <span>
-              <b>{Math.round(game.elapsed / 1000)}с</b> в игре
+              <b>x{game.bestCombo}</b> лучшая серия
             </span>
             <span>
               <b>{game.correctionCount}</b> подсказок

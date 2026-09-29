@@ -12,6 +12,9 @@ Record device, OS, browser, date and outcome here after testing. Use the product
 - [ ] Charge with two fingers folded: “N из 4” correction; straighten to complete.
 - [ ] Swipe left, then diagonally: appropriate corrections. Swipe right to succeed.
 - [ ] Complete practice, start by open-palm dwell, repair all three modules.
+- [ ] Communications → navigation → life support: targets change position and chapter transitions appear without input.
+- [ ] Sweep outside a marked lane: the game explains whether to aim higher or lower. In life support, clear both lower and upper lanes.
+- [ ] Complete a clean run and observe increasing combo, rank and local record.
 - [ ] Hide the hand and switch tabs: timer pauses; no accidental cell placement.
 - [ ] See result and local record; gesture replay works without mouse.
 - [ ] Exit: camera indicator switches off. Re-enter: camera initializes again.

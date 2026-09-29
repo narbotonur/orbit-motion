@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { observation } from "../fixtures.ts";
-import { DOCK, SOURCE, REPLAY } from "../../src/game/engine.ts";
+import { REPLAY, currentSector, swipeLane } from "../../src/game/engine.ts";
 import type { Game } from "../../src/game/engine.ts";
 import type { Observation } from "../../src/vision/gestures.ts";
 
@@ -19,17 +19,26 @@ async function phase(page: Page, name: string) {
   await expect.poll(async () => (await state(page)).phase).toBe(name);
 }
 async function cycle(page: Page) {
-  await feed(page, { pointer: SOURCE, pinch: false });
+  const sector = currentSector(await state(page));
+  await feed(page, { pointer: sector.source, pinch: false });
   await page.waitForTimeout(100);
-  await feed(page, { pointer: SOURCE, pinch: true, open: false });
+  await feed(page, { pointer: sector.source, pinch: true, open: false });
   await expect.poll(async () => (await state(page)).carrying).toBe(true);
-  await feed(page, { pointer: DOCK, pinch: true, open: false });
+  await feed(page, { pointer: sector.dock, pinch: true, open: false });
   await page.waitForTimeout(100);
-  await feed(page, { pointer: DOCK });
+  await feed(page, { pointer: sector.dock });
   await expect.poll(async () => (await state(page)).task).toBe("charge");
   await expect.poll(async () => (await state(page)).task).toBe("clear");
-  await feed(page, { swipeRight: true });
-  await page.waitForTimeout(120);
+  for (let i = 0; i < sector.swipes; i++) {
+    const before = (await state(page)).event;
+    await feed(page, {
+      pointer: { x: 0.75, y: swipeLane(await state(page)) },
+      swipeRight: true,
+    });
+    await expect
+      .poll(async () => (await state(page)).event)
+      .toBeGreaterThan(before);
+  }
 }
 test("real WASM initializes, then deterministic observations complete the UI flow", async ({
   page,
@@ -50,14 +59,29 @@ test("real WASM initializes, then deterministic observations complete the UI flo
   await feed(page);
   await phase(page, "playing");
   await page.screenshot({ path: ".ops/screens/mission.png", fullPage: true });
-  const before = (await state(page)).remaining;
   await feed(page, { quality: "missing" });
+  await expect.poll(async () => (await state(page)).paused).toBe(true);
+  const pausedAt = (await state(page)).remaining;
   await page.waitForTimeout(1000);
-  expect((await state(page)).remaining).toBeGreaterThanOrEqual(before - 60);
+  expect((await state(page)).remaining).toBe(pausedAt);
   await expect(
     page.getByText("Таймер на паузе · верни руку в кадр"),
   ).toBeVisible();
-  for (let i = 0; i < 3; i++) await cycle(page);
+  for (let i = 0; i < 3; i++) {
+    await cycle(page);
+    if (i < 2) {
+      await phase(page, "interlude");
+      if (i === 0)
+        await page.screenshot({
+          path: ".ops/screens/interlude.png",
+          fullPage: true,
+        });
+      await phase(page, "playing");
+      await expect(page.locator(".sector-status")).toContainText(
+        i === 0 ? "Навигация" : "Жизнеобеспечение",
+      );
+    }
+  }
   await phase(page, "result");
   await expect(
     page.getByRole("heading", { name: "Станция снова в строю." }),

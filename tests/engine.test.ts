@@ -1,6 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { newGame, stepGame, SOURCE, DOCK, REPLAY } from "../src/game/engine.ts";
+import {
+  newGame,
+  stepGame,
+  SOURCE,
+  DOCK,
+  REPLAY,
+  SECTORS,
+  currentSector,
+  swipeLane,
+  gradeGame,
+} from "../src/game/engine.ts";
 import type { Game } from "../src/game/engine.ts";
 import type { Observation } from "../src/vision/gestures.ts";
 import { observation } from "./fixtures.ts";
@@ -10,23 +20,35 @@ function hold(s: Game, o: Observation, ticks = 16) {
   return s;
 }
 function cycle(s: Game) {
-  s = stepGame(s, observation({ pointer: SOURCE, pinch: false }), 100);
+  const sector = currentSector(s);
+  s = stepGame(s, observation({ pointer: sector.source, pinch: false }), 100);
   s = stepGame(
     s,
-    observation({ pointer: SOURCE, pinch: true, open: false }),
+    observation({ pointer: sector.source, pinch: true, open: false }),
     100,
   );
   assert.equal(s.carrying, true);
   s = stepGame(
     s,
-    observation({ pointer: DOCK, pinch: true, open: false }),
+    observation({ pointer: sector.dock, pinch: true, open: false }),
     100,
   );
-  s = stepGame(s, observation({ pointer: DOCK, pinch: false }), 100);
+  s = stepGame(s, observation({ pointer: sector.dock, pinch: false }), 100);
   assert.equal(s.task, "charge");
-  s = hold(s, observation({ pointer: DOCK }));
+  s = hold(
+    s,
+    observation({ pointer: sector.dock }),
+    Math.ceil(sector.chargeMs / 100) + 1,
+  );
   assert.equal(s.task, "clear");
-  return stepGame(s, observation({ swipeRight: true }), 100);
+  for (let i = 0; i < sector.swipes; i++) {
+    s = stepGame(
+      s,
+      observation({ pointer: { x: 0.75, y: swipeLane(s) }, swipeRight: true }),
+      100,
+    );
+  }
+  return s;
 }
 test("entire hands-free flow: calibration, practice, mission, result, replay", () => {
   let s = hold(newGame(), observation(), 10);
@@ -38,18 +60,99 @@ test("entire hands-free flow: calibration, practice, mission, result, replay", (
   s = hold(s, observation());
   assert.equal(s.phase, "playing");
   s = cycle(s);
+  assert.equal(s.phase, "interlude");
+  const frozenAtInterlude = s.remaining;
+  s = hold(s, observation(), 18);
+  assert.equal(s.remaining, frozenAtInterlude);
+  assert.equal(s.phase, "playing");
   s = cycle(s);
+  assert.equal(s.phase, "interlude");
+  s = hold(s, observation(), 18);
   s = cycle(s);
   assert.equal(s.phase, "result");
   assert.equal(s.module, 3);
   assert.equal(s.finished, true);
   assert.ok(s.score >= 1050);
+  assert.equal(s.bestCombo, 10);
+  assert.equal(gradeGame(s), "S");
   const frozen = s.remaining;
   s = hold(s, observation());
   assert.equal(s.remaining, frozen);
   s = stepGame(s, observation({ open: false }), 100);
   s = hold(s, observation({ pointer: REPLAY }));
   assert.equal(s.phase, "ready");
+});
+
+test("second sector moves the cell and port, rejecting the old position", () => {
+  let s: Game = {
+    ...newGame(),
+    phase: "playing",
+    module: 1,
+    cell: { ...SECTORS[1].source },
+  };
+  s = stepGame(
+    s,
+    observation({ pointer: SOURCE, pinch: true, open: false }),
+    100,
+  );
+  assert.equal(s.carrying, false);
+  s = stepGame(
+    s,
+    observation({ pointer: SECTORS[1].source, pinch: false }),
+    100,
+  );
+  s = stepGame(
+    s,
+    observation({ pointer: SECTORS[1].source, pinch: true, open: false }),
+    100,
+  );
+  assert.equal(s.carrying, true);
+});
+
+test("swiping outside the marked lane explains where to retry and breaks combo", () => {
+  let s: Game = {
+    ...newGame(),
+    phase: "playing",
+    module: 1,
+    task: "clear",
+    combo: 4,
+  };
+  s = stepGame(
+    s,
+    observation({ pointer: { x: 0.75, y: 0.75 }, swipeRight: true }),
+    100,
+  );
+  assert.equal(s.task, "clear");
+  assert.equal(s.module, 1);
+  assert.equal(s.combo, 0);
+  assert.match(s.hint, /верхнюю/);
+  assert.equal(s.correction, true);
+  assert.equal(s.correctionCount, 1);
+});
+
+test("life support requires two sweeps in two different lanes", () => {
+  let s: Game = {
+    ...newGame(),
+    phase: "playing",
+    module: 2,
+    task: "clear",
+    swipesLeft: 2,
+  };
+  s = stepGame(
+    s,
+    observation({ pointer: { x: 0.75, y: 0.69 }, swipeRight: true }),
+    100,
+  );
+  assert.equal(s.phase, "playing");
+  assert.equal(s.swipesLeft, 1);
+  assert.equal(s.module, 2);
+  s = stepGame(
+    s,
+    observation({ pointer: { x: 0.75, y: 0.31 }, swipeRight: true }),
+    100,
+  );
+  assert.equal(s.phase, "result");
+  assert.equal(s.finished, true);
 });
 test("pinching before reaching the cell cannot remotely grab it", () => {
   let s = { ...newGame(), phase: "playing" as const };
@@ -77,6 +180,7 @@ test("dropping outside dock resets cell and explains the mistake", () => {
   assert.deepEqual(s.cell, SOURCE);
   assert.equal(s.task, "carry");
   assert.match(s.hint, /рано/);
+  assert.equal(s.correctionCount, 1);
   s = hold(s, observation(), 10);
   assert.match(s.hint, /рано/);
   assert.equal(s.correction, true);
@@ -128,4 +232,5 @@ test("timeout ends mission without awarding completion bonus", () => {
   assert.equal(s.phase, "result");
   assert.equal(s.finished, false);
   assert.equal(s.score, 100);
+  assert.equal(gradeGame(s), "C");
 });
