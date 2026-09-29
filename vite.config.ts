@@ -1,9 +1,10 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  worker: { format: "es" },
   server: { port: 5180, strictPort: true },
   preview: { port: 4180, strictPort: true },
-  build: { target: 'es2022' },
+  build: { target: "es2022" },
 });
