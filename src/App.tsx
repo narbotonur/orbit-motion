@@ -280,14 +280,17 @@ export default function App() {
               </button>
             </>
           ) : (
-            <a
-              className="text-button"
-              href="https://github.com/narbotonur/orbit-motion"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Исходный код <span>↗</span>
-            </a>
+            <>
+              <a className="text-button" href="/?mode=translator">ORBIT TRANSLATOR <span>↗</span></a>
+              <a
+                className="text-button"
+                href="https://github.com/narbotonur/orbit-motion"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Исходный код <span>↗</span>
+              </a>
+            </>
           )}
         </div>
       </header>
@@ -357,6 +360,10 @@ export default function App() {
                 <span className="mono">01 — 10</span>
               </div>
             </div>
+          </section>
+          <section className="translator-promo">
+            <div><span className="eyebrow">НОВЫЙ ЭКСПЕРИМЕНТ / ДВЕ РУКИ</span><h2>ORBIT TRANSLATOR</h2><p>Запиши собственные жесты и превращай их в слова в реальном времени. Это персональный словарь, не готовый перевод жестового языка.</p></div>
+            <a href="/?mode=translator" className="primary-button">Открыть переводчик <Icon name="arrow" size={18} /></a>
           </section>
           <section className="campaign-section" aria-labelledby="campaign-title">
             <div className="section-heading">

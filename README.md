@@ -2,7 +2,7 @@
 
 **Live demo:** https://elitenuet.xyz · **Source:** https://github.com/narbotonur/orbit-motion
 
-Browser camera game for ADMIT HACKATHON, Motion qualifier, September 28–30, 2026 (Astana, UTC+5).
+Browser camera project for ADMIT HACKATHON, Motion qualifier, September 28–30, 2026 (Astana, UTC+5). It has the ten-level ORBIT game and a separate experimental **ORBIT TRANSLATOR** mode.
 
 Restore an orbital station across **10 levels** using three hand gestures: pinch to carry a power cell, open palm to charge, open-hand swipe to clear debris. Calibration and hands-free practice precede the campaign. Each level has its own timer; later levels have multiple repair nodes, ordered debris lanes and misleading amber ports. Completed levels unlock the next level locally, so the player can return without repeating the entire campaign. No account required.
 
@@ -13,6 +13,12 @@ ORBIT is the first playable demonstration of a broader idea: use an ordinary web
 The present evidence is limited to this browser game and its automated tests. Potential next uses are hands-free slide navigation and interactive classroom exercises, followed by per-user calibration and usability testing with actual learners. We do not claim accessibility for any disability, medical benefit, or universal gesture accuracy without those studies. The game is the concrete first scenario, not a finished education platform.
 
 The [product vision and validation roadmap](docs/PRODUCT_VISION.md) explain how we would test a first OYSAN lesson and measure whether specific corrections actually help learners.
+
+## ORBIT TRANSLATOR (experimental second mode)
+
+Open `/?mode=translator`. Record a personal one- or two-hand gesture three times, attach a word or phrase, then show it again to add that label to a message. The browser can speak the message aloud. Up to 12 templates are stored locally as normalized landmark coordinates; no camera image or video is saved. Unknown or ambiguous gestures are rejected with guidance. The [mode guide and limitations](docs/TRANSLATOR.md) explain the training and recognition pipeline.
+
+This is a **personal gesture-to-text vocabulary**, not a validated translation system for International Sign or any national sign language. International Sign is not a universal fixed dictionary; real sign languages also use facial and body information that this prototype does not yet process. The working game remains the primary complete hackathon scenario while this second mode explores the longer-term communication use case.
 
 ## Team
 
@@ -43,7 +49,7 @@ npm run preview
 ## How to play
 
 1. Click **Подключить камеру** and allow camera access. This browser permission is the only required mouse/touch step.
-2. Show one open hand, fully inside the frame, facing the camera. Hold it near the centre for calibration.
+2. Show one open hand, fully inside the frame, facing the camera. Hold it near the centre for calibration. The game uses one-hand tracking; TRANSLATOR separately enables two hands.
 3. Follow the three practice tasks without a timer:
    - **Pinch:** move the hand cursor onto the energy cell on the left, join thumb and index fingertips, carry it to the right-hand port, then release.
    - **Open palm:** straighten all four fingers and keep the cursor in the port until its ring fills.
@@ -84,7 +90,7 @@ Webcam → ImageBitmap → Web Worker / Hand Landmarker → 21 landmarks
 
 MediaPipe supplies landmarks only. **Our code** implements gesture classification, temporal smoothing, thresholds, state transitions, spatial targets, hold times, hysteresis, cooldown and contextual corrections. No prebuilt MediaPipe game or gesture demo is embedded.
 
-- `src/vision/worker.ts`: CPU/WASM inference off the UI thread, one hand.
+- `src/vision/worker.ts`: CPU/WASM inference off the UI thread; one hand for the game, up to two for TRANSLATOR.
 - `src/vision/camera.ts`: camera lifecycle, bounded frame pipeline (at most 20 FPS), failures and recovery.
 - `src/vision/gestures.ts`: mirrored cursor smoothing; palm-normalized pinch thresholds 0.30 / 0.48; four-finger extension; swipe displacement > 0.23 over 100–700 ms, vertical travel < 0.15, 1-second cooldown.
 - `src/game/engine.ts`: calibration → practice → ready → ten timed levels with automatic transitions, variable repair-node counts and targets → result/replay. Start/replay dwell 1.3 seconds.

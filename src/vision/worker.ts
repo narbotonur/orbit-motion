@@ -16,7 +16,7 @@ self.onmessage = async (event: MessageEvent) => {
           delegate: "CPU",
         },
         runningMode: "VIDEO",
-        numHands: 1,
+        numHands: event.data.numHands === 2 ? 2 : 1,
         minHandDetectionConfidence: 0.6,
         minHandPresenceConfidence: 0.6,
         minTrackingConfidence: 0.6,
@@ -42,6 +42,8 @@ self.onmessage = async (event: MessageEvent) => {
         type: "result",
         at: event.data.at,
         points: result.landmarks[0] ?? [],
+        hands: result.landmarks,
+        handedness: result.handedness.map((entries) => entries[0]?.categoryName ?? "Unknown"),
       });
     } catch (error) {
       self.postMessage({

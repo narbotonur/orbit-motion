@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
+import Translator from "./Translator.tsx";
 import "./styles.css";
 
 class ErrorBoundary extends React.Component<
@@ -17,7 +18,7 @@ class ErrorBoundary extends React.Component<
         <main className="fatal-error">
           <h1>Связь прервалась</h1>
           <p>
-            Не удалось отобразить игру. Перезагрузи страницу, чтобы отключить
+            Не удалось отобразить приложение. Перезагрузи страницу, чтобы отключить
             текущую камеру и начать заново.
           </p>
           <button className="primary-button" onClick={() => location.reload()}>
@@ -30,6 +31,6 @@ class ErrorBoundary extends React.Component<
 }
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
-    <App />
+    {new URLSearchParams(location.search).get("mode") === "translator" ? <Translator /> : <App />}
   </ErrorBoundary>,
 );

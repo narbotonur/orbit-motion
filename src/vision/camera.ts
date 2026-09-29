@@ -1,7 +1,12 @@
 import { GestureTracker } from "./gestures.ts";
-import type { Observation } from "./gestures.ts";
+import type { Observation, Point } from "./gestures.ts";
 
 export type CameraSession = { stop: () => void };
+export type HandFrame = { at: number; hands: Point[][]; handedness: string[] };
+export type CameraOptions = {
+  numHands?: 1 | 2;
+  onFrame?: (frame: HandFrame) => void;
+};
 export function cameraError(error: unknown): string {
   const name = error instanceof Error ? error.name : "";
   if (name === "NotAllowedError" || name === "SecurityError")
@@ -19,6 +24,7 @@ export async function startCamera(
   onStatus: (status: string) => void,
   onFatal: (message: string) => void,
   signal: AbortSignal,
+  options: CameraOptions = {},
 ): Promise<CameraSession> {
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia)
     throw new Error("Camera requires HTTPS or localhost");
@@ -84,14 +90,19 @@ export async function startCamera(
           else reject(new Error(event.data.message));
         }
       };
-      worker!.postMessage({ type: "init", base: window.location.origin });
+      worker!.postMessage({ type: "init", base: window.location.origin, numHands: options.numHands ?? 1 });
     });
     if (stopped) throw new DOMException("Aborted", "AbortError");
     worker.onmessage = (event) => {
       busy = false;
-      if (event.data.type === "result")
+      if (event.data.type === "result") {
+        options.onFrame?.({
+          at: performance.now(),
+          hands: event.data.hands ?? [],
+          handedness: event.data.handedness ?? [],
+        });
         onHand(tracker.observe(event.data.points, performance.now()));
-      else if (event.data.type === "error") {
+      } else if (event.data.type === "error") {
         stop();
         onFatal("Распознавание остановилось. Перезапусти камеру.");
       }

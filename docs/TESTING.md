@@ -33,3 +33,16 @@ Record device, OS, browser, date and outcome here after testing. Use the product
 5. Explain: MediaPipe gives points; our rules, time windows and state machine decide actions and corrections. No video leaves the browser.
 
 Do not claim the recognition model was trained by the team. If live lighting is unreliable, show a genuine prerecorded run as backup, explicitly labelled as a recording—not as live inference.
+
+## ORBIT TRANSLATOR manual checklist
+
+This second mode is experimental; the following checks are still pending on a real two-hand webcam session:
+
+- [ ] Open `/?mode=translator` on the production domain; game link and return link both work.
+- [ ] Allow camera access. Both hands have separate, aligned skeleton overlays. Check a laptop and a front-facing phone camera.
+- [ ] Record three consistent repetitions of one two-hand moving gesture; the new label appears in the personal dictionary.
+- [ ] Show the same gesture again. It produces one word, not repeated words while hands remain in place.
+- [ ] Lower hands, show it again, and confirm a second word appears. Undo, clear and speech work.
+- [ ] Try a reversed or incomplete movement: it must not silently become a word; check the correction.
+- [ ] Reload the page: the label remains, but video was not stored. Delete the label and reload again.
+- [ ] Test with another person: record their own template; do not claim signer-independent recognition without evaluation.
