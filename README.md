@@ -1,5 +1,7 @@
 # ORBIT · Team OySan
 
+**Live demo:** https://elitenuet.xyz · **Source:** https://github.com/narbotonur/orbit-motion
+
 Browser camera game for ADMIT HACKATHON, Motion qualifier, September 28–30, 2026 (Astana, UTC+5).
 
 Restore an orbital station using three hand gestures: pinch to carry a power cell, open palm to charge, open-hand swipe to clear debris. A 90-second mission follows calibration and hands-free practice. No account required.
@@ -9,6 +11,8 @@ Restore an orbital station using three hand gestures: pinch to carry a power cel
 ORBIT is the first playable demonstration of a broader idea: use an ordinary webcam for simple hands-free learning interactions, with specific feedback when a movement is imprecise. The station story makes three reusable interaction primitives visible: **pinch → select and move**, **open-palm dwell → confirm**, **swipe → navigate**. The error mode demonstrates how a future lesson could teach the action instead of silently ignoring it. Local processing means the prototype works without accounts, wearables or a video upload service.
 
 The present evidence is limited to this browser game and its automated tests. Potential next uses are hands-free slide navigation and interactive classroom exercises, followed by per-user calibration and usability testing with actual learners. We do not claim accessibility for any disability, medical benefit, or universal gesture accuracy without those studies. The game is the concrete first scenario, not a finished education platform.
+
+The [product vision and validation roadmap](docs/PRODUCT_VISION.md) explain how we would test a first OYSAN lesson and measure whether specific corrections actually help learners.
 
 ## Team
 
