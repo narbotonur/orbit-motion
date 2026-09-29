@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
+    "build:vercel": "node scripts/prepare-vision.mjs --brotli && tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "assets": "node scripts/prepare-vision.mjs",
     "postinstall": "node scripts/prepare-vision.mjs",

@@ -75,7 +75,7 @@ export async function startCamera(
       const timer = window.setTimeout(() => {
         signal.removeEventListener("abort", abort);
         reject(new Error("Model timeout"));
-      }, 45000);
+      }, 120000);
       signal.addEventListener("abort", abort, { once: true });
       worker!.onerror = () => {
         clearTimeout(timer);

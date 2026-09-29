@@ -121,7 +121,7 @@ Production WASM startup has also been checked in Chrome against `npm run preview
 - Requires a secure context (HTTPS, `localhost` or loopback), camera permission, WebAssembly and module workers. Start with current Chrome/Edge on a laptop. Mobile layout is provided; actual phone-camera compatibility still needs device testing.
 - Low light, backlighting, occlusion, edge-on palms, rapid movement or an underpowered device can reduce detection quality. No medical or fitness claims.
 - This is not an offline PWA. The first page/model load requires network access.
-- Vercel settings are committed in `vercel.json`. Build: `npm run build`; output: `dist`; no secrets or backend configuration required. Dependency installation downloads the model, with checksum verification.
+- Vercel settings are committed in `vercel.json`. Its build uses `npm run build:vercel` to serve the large WASM/model assets with Brotli content encoding; local development and `npm run build` use uncompressed assets. Output: `dist`; no secrets or backend configuration required. Dependency installation downloads the model, with checksum verification.
 
 ## Third-party assets and provenance
 
