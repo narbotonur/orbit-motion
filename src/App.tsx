@@ -293,6 +293,10 @@ export default function App() {
                 <br className="desktop-break" /> Верни её в строй тремя
                 движениями руки.
               </p>
+              <p className="hero-purpose">
+                Игра проверяет основу будущего интерфейса для обучения: выбрать,
+                подтвердить, перейти дальше — с обычной веб-камерой.
+              </p>
               <button className="primary-button launch" onClick={begin}>
                 <Icon name="camera" size={21} /> Подключить камеру{" "}
                 <Icon name="arrow" size={20} />
@@ -382,6 +386,38 @@ export default function App() {
               <div>
                 <strong>Разогни пальцы</strong>
                 <span>Для зарядки нужна раскрытая ладонь.</span>
+              </div>
+            </div>
+          </section>
+          <section className="vision-section" aria-labelledby="vision-title">
+            <div>
+              <span className="eyebrow">ЗАЧЕМ МЫ ЭТО ДЕЛАЕМ</span>
+              <h2 id="vision-title">
+                Сначала игра. Затем — больше способов учиться.
+              </h2>
+              <p>
+                Сегодня эти движения чинят станцию. Та же связка «действие →
+                распознавание → конкретная подсказка» может лечь в основу
+                интерактивных уроков и управления учебными материалами без мыши.
+                ORBIT — проверка первого сценария, а не обещание готового
+                универсального решения.
+              </p>
+            </div>
+            <div
+              className="vision-mapping"
+              aria-label="Жесты и будущие действия"
+            >
+              <div>
+                <span>01 / ЩИПОК</span>
+                <strong>Выбрать и переместить</strong>
+              </div>
+              <div>
+                <span>02 / ЛАДОНЬ</span>
+                <strong>Подтвердить действие</strong>
+              </div>
+              <div>
+                <span>03 / ВЗМАХ</span>
+                <strong>Перейти дальше</strong>
               </div>
             </div>
           </section>

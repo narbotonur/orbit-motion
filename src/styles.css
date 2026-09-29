@@ -183,6 +183,13 @@ button:hover {
   line-height: 1.7;
   letter-spacing: -0.15px;
 }
+.hero-purpose {
+  max-width: 440px;
+  margin-top: 15px;
+  color: #3e6655;
+  font-size: 13px;
+  line-height: 1.55;
+}
 .primary-button {
   min-height: 50px;
   display: inline-flex;
@@ -465,6 +472,56 @@ button:hover {
   font-size: 10px;
   color: #9b886a;
   margin-top: 4px;
+}
+.vision-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: clamp(28px, 6vw, 100px);
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding: 38px 0 46px;
+}
+.vision-section h2 {
+  max-width: 610px;
+  margin: 12px 0 14px;
+  font-size: clamp(23px, 2.5vw, 36px);
+  line-height: 1.15;
+  font-weight: 540;
+  letter-spacing: -1.2px;
+}
+.vision-section p {
+  max-width: 610px;
+  color: #68776d;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.vision-mapping {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+  padding: 6px 20px;
+}
+.vision-mapping > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #e8ede8;
+}
+.vision-mapping > div:last-child {
+  border-bottom: 0;
+}
+.vision-mapping span {
+  color: #758b7e;
+  font-family: "Geist Mono", monospace;
+  font-size: 9px;
+  white-space: nowrap;
+}
+.vision-mapping strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 560;
+  text-align: right;
 }
 .landing-footer {
   display: flex;
@@ -1368,6 +1425,13 @@ button:hover {
   }
 }
 @media (max-width: 800px) {
+  .vision-section {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .vision-section h2 {
+    font-size: 28px;
+  }
   .site-header {
     height: 74px;
     padding: 0 22px;
@@ -1506,6 +1570,13 @@ button:hover {
   }
 }
 @media (max-width: 500px) {
+  .vision-mapping > div {
+    flex-direction: column;
+    gap: 5px;
+  }
+  .vision-mapping strong {
+    text-align: left;
+  }
   .site-header {
     padding: 0 18px;
   }
