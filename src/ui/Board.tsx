@@ -117,7 +117,7 @@ export function Board({
   const progress = Math.min(1, game.hold / holdDuration);
   return (
     <div
-      className={`playfield ${tasking ? `task-${game.task}` : ""}`}
+      className={`playfield phase-${mode} ${tasking ? `task-${game.task}` : ""}`}
       data-testid="playfield"
     >
       <div className="starfield">

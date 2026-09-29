@@ -62,6 +62,9 @@ test("real WASM initializes, then deterministic observations complete the UI flo
   await expect(
     page.getByRole("heading", { name: "Станция снова в строю." }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Первый шаг сделан" }),
+  ).toBeVisible();
   expect((await state(page)).score).toBeGreaterThan(1050);
   expect(
     await page.evaluate(

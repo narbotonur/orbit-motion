@@ -606,33 +606,63 @@ export default function App() {
                 </span>
               </div>
             </section>
-            <section className="steps-panel">
-              <div className="panel-title">
-                <h2>{game.phase === "tutorial" ? "Обучение" : "Управление"}</h2>
-                <span className="mono">01—03</span>
-              </div>
-              {gestures.map((g, i) => (
-                <div
-                  key={g.name}
-                  className={`control-step ${currentTask === i ? "current" : ""}`}
-                >
-                  <div className="control-icon">
-                    <Icon name={g.icon} size={22} />
-                  </div>
-                  <div>
-                    <b>{g.name}</b>
-                    <span>{g.detail}</span>
-                  </div>
-                  <span className="mono">0{i + 1}</span>
+            {game.phase === "result" ? (
+              <section className="steps-panel outcome-panel">
+                <div className="panel-title">
+                  <h2>Первый шаг сделан</h2>
+                  <span className="mono">ORBIT → OYSAN</span>
                 </div>
-              ))}
-              {(game.phase === "tutorial" || game.phase === "playing") && (
-                <p className="task-description">
-                  <b>{taskNames[game.task]}</b>
-                  {taskInstructions[game.task]}
+                <p>
+                  Три движения уже позволяют пройти задачу без клавиатуры. В
+                  учебном интерфейсе они могут стать такими действиями:
                 </p>
-              )}
-            </section>
+                <div>
+                  <span>Щипок</span>
+                  <b>Выбрать объект</b>
+                </div>
+                <div>
+                  <span>Ладонь</span>
+                  <b>Подтвердить</b>
+                </div>
+                <div>
+                  <span>Взмах</span>
+                  <b>Перейти дальше</b>
+                </div>
+                <small>
+                  Следующий этап — проверить эти действия в реальном уроке.
+                </small>
+              </section>
+            ) : (
+              <section className="steps-panel">
+                <div className="panel-title">
+                  <h2>
+                    {game.phase === "tutorial" ? "Обучение" : "Управление"}
+                  </h2>
+                  <span className="mono">01—03</span>
+                </div>
+                {gestures.map((g, i) => (
+                  <div
+                    key={g.name}
+                    className={`control-step ${currentTask === i ? "current" : ""}`}
+                  >
+                    <div className="control-icon">
+                      <Icon name={g.icon} size={22} />
+                    </div>
+                    <div>
+                      <b>{g.name}</b>
+                      <span>{g.detail}</span>
+                    </div>
+                    <span className="mono">0{i + 1}</span>
+                  </div>
+                ))}
+                {(game.phase === "tutorial" || game.phase === "playing") && (
+                  <p className="task-description">
+                    <b>{taskNames[game.task]}</b>
+                    {taskInstructions[game.task]}
+                  </p>
+                )}
+              </section>
+            )}
             <div className="camera-tip">
               <Icon name="shield" size={18} />
               <p>
