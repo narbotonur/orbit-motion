@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { observation } from "../fixtures.ts";
-import { REPLAY, SECTORS, currentWave, swipeLane, signalFrequency } from "../../src/game/engine.ts";
+import { REPLAY, SECTORS, currentWave, swipeLane, signalFrequency, signalCableEnd, signalSocket } from "../../src/game/engine.ts";
 import type { Game } from "../../src/game/engine.ts";
 import type { Observation } from "../../src/vision/gestures.ts";
 
@@ -40,14 +40,17 @@ async function cycle(page: Page) {
       .toBeGreaterThan(before);
   }
   if ((await state(page)).task === "signal") {
-    const left = observation({ pointer: { x: 0.15, y: 1 - signalFrequency(await state(page)) } });
-    await feed(page, { pointer: wave.source, partner: left });
+    const signalGame = await state(page);
+    const left = observation({ pointer: { x: 0.15, y: 1 - signalFrequency(signalGame) } });
+    const cableEnd = signalCableEnd(signalGame);
+    const socket = signalSocket(signalGame);
+    await feed(page, { pointer: cableEnd, partner: left });
     await page.waitForTimeout(100);
-    await feed(page, { pointer: wave.source, pinch: true, open: false, partner: left });
+    await feed(page, { pointer: cableEnd, pinch: true, open: false, partner: left });
     await expect.poll(async () => (await state(page)).carrying).toBe(true);
-    await feed(page, { pointer: wave.dock, pinch: true, open: false, partner: left });
+    await feed(page, { pointer: socket, pinch: true, open: false, partner: left });
     await expect.poll(async () => (await state(page)).wireAttached).toBe(true);
-    await feed(page, { pointer: wave.dock, partner: left });
+    await feed(page, { pointer: socket, partner: left });
     await expect.poll(async () => {
       const next = await state(page);
       return next.task !== "signal" || next.phase === "result";
@@ -183,14 +186,16 @@ test("two-hand signal repair has visible frequency and cable controls on desktop
   await page.goto("/?test=1");
   await page.getByRole("button", { name: "Подключить камеру" }).click();
   await expect(page.getByRole("heading", { name: "Установим связь" })).toBeVisible({ timeout: 45000 });
-  await page.evaluate(() => {
+  const initialCableEnd = signalCableEnd(await state(page));
+  await page.evaluate((cableEnd) => {
     const game = (window as any).__orbitTest.state() as Game;
     game.phase = "playing";
     game.task = "signal";
-    game.hint = "Левой рукой найди частоту. Правой подключи провод.";
-  });
+    game.cell = cableEnd;
+    game.hint = "Левой рукой найди частоту. Правой захвати провод справа.";
+  }, initialCableEnd);
   const target = signalFrequency(await state(page));
-  await feed(page, { pointer: SECTORS[0].waves[0].source, partner: observation({ pointer: { x: .14, y: 1 - target } }) });
+  await feed(page, { pointer: signalCableEnd(await state(page)), partner: observation({ pointer: { x: .14, y: 1 - target } }) });
   await expect(page.locator(".task-signal .frequency-rail")).toBeVisible();
   await expect(page.locator(".task-signal .wire-end")).toBeVisible();
   await page.screenshot({ path: ".ops/screens/signal-desktop.png", fullPage: true });

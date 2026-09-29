@@ -13,7 +13,7 @@ Record device, OS, browser, date and outcome here after testing. Use the product
 - [ ] Swipe left, then diagonally: appropriate corrections. Swipe right to succeed.
 - [ ] In the first live repair, show both hands apart: two skeletons appear and the left-hand frequency marker follows vertical movement.
 - [ ] Tune too low and too high: the game separately asks to raise or lower the left hand. Hold it in the green band.
-- [ ] With the right hand pinch the loose wire end, move it to the socket and keep both grip and frequency steady until the contact locks.
+- [ ] With the right hand pinch the loose wire end on the RIGHT, move it inward to the CENTER socket without crossing the left hand, and keep both grip and frequency steady until the contact locks.
 - [ ] Release the wire before it locks: it returns to the source with a specific hint. Repeat, then open both palms to transmit.
 - [ ] Hide the left hand during the signal task: timer pauses and the cable cannot attach accidentally.
 - [ ] Complete practice, start by open-palm dwell, repair the first three levels.

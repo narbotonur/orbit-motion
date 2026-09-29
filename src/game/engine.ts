@@ -157,6 +157,13 @@ export function swipeLane(game: Game): number {
 export function signalFrequency(game: Game): number {
   return [0.38, 0.62, 0.48, 0.72, 0.31][(game.module * 2 + game.wave) % 5];
 }
+/** Keep the hands apart: right hand picks up on the right and moves inward. */
+export function signalCableEnd(game: Game): Point {
+  return { x: 0.79, y: currentWave(game).source.y };
+}
+export function signalSocket(game: Game): Point {
+  return { x: 0.52, y: currentWave(game).dock.y };
+}
 export const SIGNAL_TOLERANCE = 0.105;
 export function gradeGame(game: Game): "S" | "A" | "B" | "C" {
   if (!game.finished) return "C";
@@ -210,7 +217,7 @@ export const taskInstructions = {
   charge:
     "Раскрой ладонь и удерживай курсор в порту справа, пока кольцо не заполнится.",
   clear: "Раскрой ладонь и проведи ею слева направо через отмеченную полосу.",
-  signal: "ЛЕВОЙ рукой подбери частоту. ПРАВОЙ сделай щипок над концом провода, подведи его к разъёму и удержи. Затем раскрой обе ладони для передачи.",
+  signal: "Держи руки по разным сторонам кадра. ЛЕВОЙ подбери частоту. ПРАВОЙ захвати конец провода СПРАВА и тяни его к разъёму В ЦЕНТРЕ. Удержи контакт, затем раскрой обе ладони.",
 };
 function cue(s: Game, message: string, correction = false) {
   if (s.hintHold > 0) {
@@ -247,9 +254,9 @@ function nextTask(s: Game) {
     s.swipesLeft = s.phase === "tutorial" ? 1 : currentWave(s).lanes.length;
   } else if (completed === "clear" && s.phase === "playing") {
     s.task = "signal";
-    s.cell = { ...currentWave(s).source };
+    s.cell = signalCableEnd(s);
     s.wireAttached = false;
-    s.hint = "Левой рукой найди частоту. Правой захвати конец провода и подключи его.";
+    s.hint = "Левой рукой найди частоту. Правой захвати провод СПРАВА и тяни к центру.";
   } else if (s.phase === "tutorial") {
     s.phase = "ready";
     s.armed = false;
@@ -316,7 +323,7 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
     // Losing the hand cannot be interpreted as releasing a carried cell.
     if (s.carrying) {
       s.carrying = false;
-      s.cell = { ...currentWave(s).source };
+      s.cell = s.task === "signal" ? signalCableEnd(s) : { ...currentWave(s).source };
     }
     s.previousPinch = false;
     if (s.phase === "ready" || s.phase === "result") s.armed = true;
@@ -437,6 +444,8 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
       if (s.hold >= wave.chargeMs) nextTask(s);
     } else if (s.task === "signal") {
       const left = hand.partner!;
+      const cableEnd = signalCableEnd(s);
+      const socket = signalSocket(s);
       const frequency = 1 - left.pointer.y;
       const target = signalFrequency(s);
       const tuned = Math.abs(frequency - target) <= SIGNAL_TOLERANCE;
@@ -453,7 +462,7 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
       } else if (s.carrying) {
         if (!hand.pinch) {
           s.carrying = false;
-          s.cell = { ...wave.source };
+          s.cell = cableEnd;
           s.hold = 0;
           cue(s, "Отпустил провод до фиксации. Захвати конец снова и удержи его в разъёме.", true);
           s.hintHold = 1600;
@@ -463,31 +472,31 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
           s.combo = 0;
         } else {
           s.cell = { ...hand.pointer };
-          const atSocket = near(hand.pointer, wave.dock, 0.13);
+          const atSocket = near(hand.pointer, socket, 0.13);
           s.hold = atSocket && tuned ? s.hold + dt : 0;
           if (!tuned) cue(s, frequencyHint, true);
           else if (!atSocket)
-            cue(s, "Частота совпала. Правой рукой доведи провод до зелёного разъёма.", true);
+            cue(s, "Частота совпала. Правой рукой тяни провод справа к разъёму в центре.", true);
           else cue(s, "Контакт найден. Удержи щипок и частоту до фиксации.");
           if (s.hold >= 650) {
             s.wireAttached = true;
             s.carrying = false;
-            s.cell = { ...wave.dock };
+            s.cell = socket;
             s.hold = 0;
             s.event++;
             s.feedback = "Провод закреплён";
             cue(s, "Провод закреплён. Раскрой обе ладони для передачи.");
           }
         }
-      } else if (hand.pinch && !s.previousPinch && near(hand.pointer, wave.source, 0.16)) {
+      } else if (hand.pinch && !s.previousPinch && near(hand.pointer, cableEnd, 0.16)) {
         s.carrying = true;
         s.cell = { ...hand.pointer };
         cue(s, tuned
-          ? "Частота совпала. Правой рукой веди провод в разъём."
+          ? "Частота совпала. Правой рукой веди провод справа к центру."
           : frequencyHint, !tuned);
       } else if (!tuned) cue(s, frequencyHint, true);
-      else if (!near(hand.pointer, wave.source, 0.16))
-        cue(s, "Частота совпала. Наведи правую руку на свободный конец провода.");
+      else if (!near(hand.pointer, cableEnd, 0.16))
+        cue(s, "Частота совпала. Наведи правую руку на свободный конец провода СПРАВА.");
       else if (hand.pinch)
         cue(s, "Разожми правые пальцы и сделай новый щипок над концом провода.", true);
       else cue(s, "Сделай щипок правой рукой над свободным концом провода.");

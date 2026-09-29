@@ -4,7 +4,9 @@ import {
   currentSector,
   currentWave,
   gradeGame,
+  signalCableEnd,
   signalFrequency,
+  signalSocket,
   SIGNAL_TOLERANCE,
   swipeLane,
   taskNames,
@@ -125,7 +127,9 @@ export function Board({
   const tasking = tutorial || mode === "playing";
   const sector = currentSector(game);
   const wave = currentWave(game);
-  const wireAnchorX = wave.source.x + 0.14;
+  const cableEnd = signalCableEnd(game);
+  const socket = signalSocket(game);
+  const wireAnchorX = cableEnd.x + 0.14;
   const lane = swipeLane(game);
   const holdDuration =
     mode === "calibration"
@@ -250,7 +254,7 @@ export function Board({
             <>
               <div className="signal-heading">
                 <strong>ВОССТАНОВИ СВЯЗЬ</strong>
-                <span>ЛЕВАЯ РУКА · ЧАСТОТА &nbsp; / &nbsp; ПРАВАЯ · ПРОВОД</span>
+                <span>ЛЕВАЯ · ЧАСТОТА &nbsp; / &nbsp; ПРАВАЯ · ПРОВОД СПРАВА → ЦЕНТР</span>
               </div>
               <div className="frequency-rail" aria-label="Настройка частоты левой рукой">
                 <span className="frequency-high">ВЫСОКАЯ</span>
@@ -269,13 +273,13 @@ export function Board({
                 </b>
               </div>
               <svg className={`wire-path ${game.wireAttached ? "attached" : ""}`} viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
-                <path d={`M${wireAnchorX * 1000} ${wave.source.y * 1000} Q${((wireAnchorX + game.cell.x) / 2) * 1000} ${Math.max(wave.source.y, game.cell.y) * 1000 + 90} ${game.cell.x * 1000} ${game.cell.y * 1000}`} />
+                <path d={`M${wireAnchorX * 1000} ${cableEnd.y * 1000} Q${((wireAnchorX + game.cell.x) / 2) * 1000} ${Math.max(cableEnd.y, game.cell.y) * 1000 + 90} ${game.cell.x * 1000} ${game.cell.y * 1000}`} />
               </svg>
-              <div className="wire-source" style={place({ x: wireAnchorX, y: wave.source.y })}>ЛИНИЯ</div>
+              <div className="wire-source" style={place({ x: wireAnchorX, y: cableEnd.y })}>ЛИНИЯ</div>
               <div className={`wire-end ${game.carrying ? "dragging" : ""} ${game.wireAttached ? "attached" : ""}`} style={place(game.cell)}>
                 <span>ϟ</span>
               </div>
-              <div className={`wire-socket ${game.wireAttached ? "attached" : ""}`} style={place(wave.dock)}>
+              <div className={`wire-socket ${game.wireAttached ? "attached" : ""}`} style={place(socket)}>
                 <svg viewBox="0 0 100 100" aria-hidden="true">
                   <circle cx="50" cy="50" r="44" className="socket-track" />
                   <circle cx="50" cy="50" r="44" className="socket-progress" strokeDasharray={`${progress * 277} 277`} />
