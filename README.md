@@ -4,7 +4,7 @@
 
 Browser camera game for ADMIT HACKATHON, Motion qualifier, September 28–30, 2026 (Astana, UTC+5).
 
-Restore an orbital station using three hand gestures: pinch to carry a power cell, open palm to charge, open-hand swipe to clear debris. A 90-second mission follows calibration and hands-free practice. Its three systems have different spatial targets, charge times and debris lanes; the final system needs two sweeps. No account required.
+Restore an orbital station across **10 levels** using three hand gestures: pinch to carry a power cell, open palm to charge, open-hand swipe to clear debris. Calibration and hands-free practice precede the campaign. Each level has its own timer; later levels have multiple repair nodes, ordered debris lanes and misleading amber ports. Completed levels unlock the next level locally, so the player can return without repeating the entire campaign. No account required.
 
 ## Why this exists
 
@@ -48,8 +48,8 @@ npm run preview
    - **Pinch:** move the hand cursor onto the energy cell on the left, join thumb and index fingertips, carry it to the right-hand port, then release.
    - **Open palm:** straighten all four fingers and keep the cursor in the port until its ring fills.
    - **Swipe:** sweep an open hand from left to right **on the mirrored screen**.
-4. Close/lower the hand once, then hold an open palm over the start target. Repair **communications → navigation → life support** in 90 seconds of active play. Targets move between systems; charge times increase. Sweep through the highlighted upper/lower lane. Life support needs two sweeps.
-5. See score, completion rank, best combo and correction prompts. Close/lower the hand and dwell over **Ещё миссия** to replay.
+4. Choose an unlocked level on the landing page, if desired. Close/lower the hand once, then hold an open palm over the start target. Repair ten systems from **communications** through **central core**. Targets move, later levels have two or three repair nodes, and ordered swipes must pass through the currently highlighted lane. Amber rings are false ports; use the green one.
+5. A level completion saves the next unlocked level on this device. If its timer runs out, use the gesture replay target to retry that level. Finish all ten for a campaign result, rank and local score. A new campaign can be started from level one.
 
 Use a well-lit room, one hand, and a stable camera around face height. Either hand can control the cursor. You can play seated. On phones, use the front camera and prop the device up; do not hold it in the controlling hand. Mouse controls for sound, fullscreen and exit are optional. Exit stops the camera.
 
@@ -63,7 +63,8 @@ This is implemented in the game, not a separate demo or a generic recognition fa
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | Fingers almost pinched over the cell           | Bring thumb and index fingertips together                                                                                |
 | Pinch started away from the cell               | Release and pinch again over the cell                                                                                    |
-| Cell released before reaching the port         | “Разжал слишком рано. Донеси ячейку до кольца справа.” Cell returns to its origin; hint remains readable for 1.8 seconds |
+| Cell released before reaching the port         | “Разжал слишком рано. Донеси ячейку до зелёного кольца справа.” Cell returns to its origin; hint remains readable for 1.8 seconds |
+| Cell released into an amber false port          | Explains that it is a false port and points to the green target; the cell returns to its origin                            |
 | Bent fingers while charging                    | “Разогни пальцы: раскрыты N из 4.”                                                                                       |
 | Open palm outside the charging port            | Move the open hand into the ring on the right                                                                            |
 | Swipe in reverse                               | Move left to right on the screen                                                                                         |
@@ -86,11 +87,11 @@ MediaPipe supplies landmarks only. **Our code** implements gesture classificatio
 - `src/vision/worker.ts`: CPU/WASM inference off the UI thread, one hand.
 - `src/vision/camera.ts`: camera lifecycle, bounded frame pipeline (at most 20 FPS), failures and recovery.
 - `src/vision/gestures.ts`: mirrored cursor smoothing; palm-normalized pinch thresholds 0.30 / 0.48; four-finger extension; swipe displacement > 0.23 over 100–700 ms, vertical travel < 0.15, 1-second cooldown.
-- `src/game/engine.ts`: calibration → practice → ready → three systems with automatic chapter transitions → result/replay. Charge 1.4, 1.8 and 2.1 seconds; start/replay dwell 1.3 seconds.
-- `src/game/storage.ts`: up to eight results in localStorage, graceful fallback if blocked.
+- `src/game/engine.ts`: calibration → practice → ready → ten timed levels with automatic transitions, variable repair-node counts and targets → result/replay. Start/replay dwell 1.3 seconds.
+- `src/game/storage.ts`: unlocked level and up to eight results in localStorage, graceful fallback if blocked.
 - `src/ui/Board.tsx`: original SVG station, targets, progress and feedback.
 
-Scoring: cell 100, charge 100, debris 150 base points; the extra final sweep earns 50. Each successful task increases a combo multiplier by 0.25, up to 2×; an early drop or persistent correction resets the combo. Successful completion adds 5 points per whole second remaining. Rank S requires a complete run, no corrections and at least 45 seconds remaining; A requires at most two corrections and 20 seconds remaining; B covers other completed runs with at most five corrections; C covers remaining runs. Incomplete missions retain earned points. The record is **local to this browser**, not a secure global leaderboard. Tracking-loss pauses prioritize accessibility over competitive time enforcement.
+Scoring: cell 100, charge 100, final debris 150 base points; intermediate sweeps earn 50. Each successful task increases a combo multiplier by 0.25, up to 2×; an early drop or persistent correction resets the combo. Each completed level adds 5 points per whole second remaining on that level. Rank S requires a complete run with no corrections; A allows up to three, B up to eight; incomplete campaigns receive C. The record and level unlocks are **local to this browser**, not a secure global leaderboard. Tracking-loss pauses prioritize usable play over competitive time enforcement.
 
 ## Checks
 

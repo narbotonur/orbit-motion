@@ -8,6 +8,7 @@ import {
   REPLAY,
   SECTORS,
   currentSector,
+  currentWave,
   swipeLane,
   gradeGame,
 } from "../src/game/engine.ts";
@@ -20,28 +21,28 @@ function hold(s: Game, o: Observation, ticks = 16) {
   return s;
 }
 function cycle(s: Game) {
-  const sector = currentSector(s);
-  s = stepGame(s, observation({ pointer: sector.source, pinch: false }), 100);
+  const wave = currentWave(s);
+  s = stepGame(s, observation({ pointer: wave.source, pinch: false }), 100);
   s = stepGame(
     s,
-    observation({ pointer: sector.source, pinch: true, open: false }),
+    observation({ pointer: wave.source, pinch: true, open: false }),
     100,
   );
   assert.equal(s.carrying, true);
   s = stepGame(
     s,
-    observation({ pointer: sector.dock, pinch: true, open: false }),
+    observation({ pointer: wave.dock, pinch: true, open: false }),
     100,
   );
-  s = stepGame(s, observation({ pointer: sector.dock, pinch: false }), 100);
+  s = stepGame(s, observation({ pointer: wave.dock, pinch: false }), 100);
   assert.equal(s.task, "charge");
   s = hold(
     s,
-    observation({ pointer: sector.dock }),
-    Math.ceil(sector.chargeMs / 100) + 1,
+    observation({ pointer: wave.dock }),
+    Math.ceil(wave.chargeMs / 100) + 1,
   );
   assert.equal(s.task, "clear");
-  for (let i = 0; i < sector.swipes; i++) {
+  for (let i = 0; i < wave.lanes.length; i++) {
     s = stepGame(
       s,
       observation({ pointer: { x: 0.75, y: swipeLane(s) }, swipeRight: true }),
@@ -50,7 +51,7 @@ function cycle(s: Game) {
   }
   return s;
 }
-test("entire hands-free flow: calibration, practice, mission, result, replay", () => {
+test("entire ten-level hands-free campaign, result and replay", () => {
   let s = hold(newGame(), observation(), 10);
   assert.equal(s.phase, "tutorial");
   s = cycle(s);
@@ -59,21 +60,29 @@ test("entire hands-free flow: calibration, practice, mission, result, replay", (
   s = stepGame(s, observation({ open: false }), 100);
   s = hold(s, observation());
   assert.equal(s.phase, "playing");
-  s = cycle(s);
-  assert.equal(s.phase, "interlude");
-  const frozenAtInterlude = s.remaining;
-  s = hold(s, observation(), 18);
-  assert.equal(s.remaining, frozenAtInterlude);
-  assert.equal(s.phase, "playing");
-  s = cycle(s);
-  assert.equal(s.phase, "interlude");
-  s = hold(s, observation(), 18);
-  s = cycle(s);
+  for (let level = 0; level < SECTORS.length; level++) {
+    const waves = SECTORS[level].waves.length;
+    for (let wave = 0; wave < waves; wave++) {
+      s = cycle(s);
+      if (wave < waves - 1) {
+        assert.equal(s.phase, "playing");
+        assert.equal(s.wave, wave + 1);
+      }
+    }
+    assert.equal(s.module, level + 1);
+    if (level < SECTORS.length - 1) {
+      assert.equal(s.phase, "interlude");
+      const frozenAtInterlude = s.remaining;
+      s = hold(s, observation(), 18);
+      assert.equal(s.remaining, frozenAtInterlude);
+      assert.equal(s.phase, "playing");
+    }
+  }
   assert.equal(s.phase, "result");
-  assert.equal(s.module, 3);
+  assert.equal(s.module, 10);
   assert.equal(s.finished, true);
-  assert.ok(s.score >= 1050);
-  assert.equal(s.bestCombo, 10);
+  assert.ok(s.score >= 7500);
+  assert.ok(s.bestCombo > 10);
   assert.equal(gradeGame(s), "S");
   const frozen = s.remaining;
   s = hold(s, observation());
@@ -88,7 +97,7 @@ test("second sector moves the cell and port, rejecting the old position", () => 
     ...newGame(),
     phase: "playing",
     module: 1,
-    cell: { ...SECTORS[1].source },
+    cell: { ...SECTORS[1].waves[0].source },
   };
   s = stepGame(
     s,
@@ -98,12 +107,12 @@ test("second sector moves the cell and port, rejecting the old position", () => 
   assert.equal(s.carrying, false);
   s = stepGame(
     s,
-    observation({ pointer: SECTORS[1].source, pinch: false }),
+    observation({ pointer: SECTORS[1].waves[0].source, pinch: false }),
     100,
   );
   s = stepGame(
     s,
-    observation({ pointer: SECTORS[1].source, pinch: true, open: false }),
+    observation({ pointer: SECTORS[1].waves[0].source, pinch: true, open: false }),
     100,
   );
   assert.equal(s.carrying, true);
@@ -151,8 +160,34 @@ test("life support requires two sweeps in two different lanes", () => {
     observation({ pointer: { x: 0.75, y: 0.31 }, swipeRight: true }),
     100,
   );
+  assert.equal(s.phase, "interlude");
+  assert.equal(s.module, 3);
+});
+test("decoy port rejects a dropped cell with a specific correction", () => {
+  const wave = SECTORS[3].waves[0];
+  assert.ok(wave.decoy);
+  let s: Game = { ...newGame(3), phase: "playing" };
+  s = stepGame(s, observation({ pointer: wave.source, pinch: true, open: false }), 100);
+  s = stepGame(s, observation({ pointer: wave.decoy, pinch: true, open: false }), 100);
+  assert.match(s.hint, /ложный порт/);
+  s = stepGame(s, observation({ pointer: wave.decoy }), 100);
+  assert.equal(s.task, "carry");
+  assert.equal(s.correctionCount, 1);
+  assert.match(s.hint, /зелёного кольца/);
+});
+test("campaign can begin at an unlocked level and retry a failed level", () => {
+  let s: Game = { ...newGame(6), phase: "ready", armed: true };
+  s = hold(s, observation({ pointer: { x: 0.5, y: 0.5 } }));
+  assert.equal(s.phase, "playing");
+  assert.equal(s.module, 6);
+  assert.ok(s.remaining > SECTORS[6].timeMs - 1000);
+  s = stepGame({ ...s, remaining: 20 }, observation(), 100);
   assert.equal(s.phase, "result");
-  assert.equal(s.finished, true);
+  s = stepGame(s, observation({ open: false }), 100);
+  s = hold(s, observation({ pointer: REPLAY }));
+  assert.equal(s.phase, "ready");
+  assert.equal(s.startLevel, 6);
+  assert.equal(s.module, 6);
 });
 test("pinching before reaching the cell cannot remotely grab it", () => {
   let s = { ...newGame(), phase: "playing" as const };
@@ -196,7 +231,7 @@ test("dropping outside dock resets cell and explains the mistake", () => {
 test("hand loss pauses time and cannot deposit a carried cell", () => {
   let s: Game = { ...newGame(), phase: "playing", carrying: true, cell: DOCK };
   s = stepGame(s, observation({ quality: "missing", pointer: DOCK }), 100);
-  assert.equal(s.remaining, 90000);
+  assert.equal(s.remaining, SECTORS[0].timeMs);
   assert.equal(s.task, "carry");
   assert.equal(s.carrying, false);
   assert.deepEqual(s.cell, SOURCE);

@@ -11,6 +11,6 @@ Reviewed on 29 September 2026. These are design references, not imported source 
 
 ## Decision
 
-Keep the orbital-repair story and three existing gestures. Expand it into three distinct systems—communications, navigation and life support—with different target positions and timing. Add a brief hands-free chapter transition, an extra final debris sweep, task-level combo and a completion grade. Each chapter still has actionable feedback for an inaccurate gesture. The reusable lesson primitives in `PRODUCT_VISION.md` remain the product reason behind the game.
+Keep the orbital-repair story and three existing gestures. The first prototype's three systems became the opening act of a ten-level campaign. Later levels add multiple repair nodes, ordered debris lanes, false ports, per-level timers, locally saved unlocks and a retry of the failed level. The chapter transitions, combo and completion grade remain, as does actionable feedback for inaccurate gestures. The reusable lesson primitives in `PRODUCT_VISION.md` remain the product reason behind the game.
 
 The mission, artwork, gesture thresholds and state machine remain original to this repository. All expanded core logic was written after the hackathon start. References influenced only high-level design choices.

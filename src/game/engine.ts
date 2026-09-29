@@ -4,46 +4,110 @@ import type { Observation, Point } from "../vision/gestures.ts";
 export type Phase =
   "calibration" | "tutorial" | "ready" | "playing" | "interlude" | "result";
 export type Task = "carry" | "charge" | "clear";
-type Sector = {
-  name: string;
-  goal: string;
+type Wave = {
   source: Point;
   dock: Point;
   chargeMs: number;
-  lane: number;
-  swipes: number;
+  lanes: readonly number[];
+  decoy?: Point;
+};
+type Sector = {
+  name: string;
+  goal: string;
+  act: string;
+  timeMs: number;
+  waves: readonly Wave[];
 };
 export const SECTORS: readonly Sector[] = [
   {
     name: "Связь",
     goal: "Вернуть сигнал станции",
-    source: { x: 0.23, y: 0.59 },
-    dock: { x: 0.7, y: 0.46 },
-    chargeMs: 1400,
-    lane: 0.53,
-    swipes: 1,
+    act: "Пробуждение",
+    timeMs: 45000,
+    waves: [{ source: { x: 0.23, y: 0.59 }, dock: { x: 0.7, y: 0.46 }, chargeMs: 1200, lanes: [0.53] }],
   },
   {
     name: "Навигация",
     goal: "Открыть безопасный маршрут",
-    source: { x: 0.24, y: 0.35 },
-    dock: { x: 0.72, y: 0.61 },
-    chargeMs: 1800,
-    lane: 0.32,
-    swipes: 1,
+    act: "Пробуждение",
+    timeMs: 50000,
+    waves: [{ source: { x: 0.24, y: 0.35 }, dock: { x: 0.72, y: 0.61 }, chargeMs: 1500, lanes: [0.32] }],
   },
   {
     name: "Жизнеобеспечение",
     goal: "Защитить экипаж",
-    source: { x: 0.19, y: 0.66 },
-    dock: { x: 0.71, y: 0.34 },
-    chargeMs: 2100,
-    lane: 0.69,
-    swipes: 2,
+    act: "Пробуждение",
+    timeMs: 55000,
+    waves: [{ source: { x: 0.19, y: 0.66 }, dock: { x: 0.71, y: 0.34 }, chargeMs: 1800, lanes: [0.69, 0.31] }],
+  },
+  {
+    name: "Солнечные панели",
+    goal: "Развернуть питание станции",
+    act: "Нестабильность",
+    timeMs: 60000,
+    waves: [{ source: { x: 0.22, y: 0.41 }, dock: { x: 0.75, y: 0.61 }, chargeMs: 1800, lanes: [0.31, 0.69], decoy: { x: 0.72, y: 0.32 } }],
+  },
+  {
+    name: "Защитный контур",
+    goal: "Закрыть два повреждённых узла",
+    act: "Нестабильность",
+    timeMs: 75000,
+    waves: [
+      { source: { x: 0.20, y: 0.34 }, dock: { x: 0.72, y: 0.39 }, chargeMs: 1600, lanes: [0.32] },
+      { source: { x: 0.28, y: 0.69 }, dock: { x: 0.71, y: 0.65 }, chargeMs: 1800, lanes: [0.69] },
+    ],
+  },
+  {
+    name: "Тепловой баланс",
+    goal: "Очистить три канала охлаждения",
+    act: "Нестабильность",
+    timeMs: 65000,
+    waves: [{ source: { x: 0.20, y: 0.63 }, dock: { x: 0.70, y: 0.38 }, chargeMs: 2200, lanes: [0.69, 0.31, 0.53], decoy: { x: 0.72, y: 0.69 } }],
+  },
+  {
+    name: "Ориентация",
+    goal: "Выровнять станцию по двум осям",
+    act: "Сближение",
+    timeMs: 80000,
+    waves: [
+      { source: { x: 0.25, y: 0.39 }, dock: { x: 0.68, y: 0.65 }, chargeMs: 1700, lanes: [0.31, 0.69] },
+      { source: { x: 0.18, y: 0.65 }, dock: { x: 0.75, y: 0.37 }, chargeMs: 1900, lanes: [0.53] },
+    ],
+  },
+  {
+    name: "Реактор",
+    goal: "Перезапустить оба контура",
+    act: "Сближение",
+    timeMs: 90000,
+    waves: [
+      { source: { x: 0.22, y: 0.60 }, dock: { x: 0.69, y: 0.35 }, chargeMs: 2100, lanes: [0.69, 0.31], decoy: { x: 0.72, y: 0.68 } },
+      { source: { x: 0.25, y: 0.34 }, dock: { x: 0.73, y: 0.65 }, chargeMs: 2200, lanes: [0.31, 0.69] },
+    ],
+  },
+  {
+    name: "Аварийный маяк",
+    goal: "Пробить помехи и передать координаты",
+    act: "Сближение",
+    timeMs: 95000,
+    waves: [
+      { source: { x: 0.19, y: 0.34 }, dock: { x: 0.73, y: 0.62 }, chargeMs: 2000, lanes: [0.31, 0.53, 0.69] },
+      { source: { x: 0.28, y: 0.68 }, dock: { x: 0.68, y: 0.36 }, chargeMs: 2200, lanes: [0.69, 0.31] },
+    ],
+  },
+  {
+    name: "Центральное ядро",
+    goal: "Соединить все системы станции",
+    act: "Финал",
+    timeMs: 110000,
+    waves: [
+      { source: { x: 0.20, y: 0.63 }, dock: { x: 0.72, y: 0.35 }, chargeMs: 2200, lanes: [0.69, 0.31], decoy: { x: 0.71, y: 0.68 } },
+      { source: { x: 0.25, y: 0.34 }, dock: { x: 0.72, y: 0.65 }, chargeMs: 2400, lanes: [0.31, 0.69] },
+      { source: { x: 0.19, y: 0.56 }, dock: { x: 0.72, y: 0.44 }, chargeMs: 2600, lanes: [0.53, 0.31, 0.69], decoy: { x: 0.72, y: 0.72 } },
+    ],
   },
 ];
-export const SOURCE: Point = SECTORS[0].source;
-export const DOCK: Point = SECTORS[0].dock;
+export const SOURCE: Point = SECTORS[0].waves[0].source;
+export const DOCK: Point = SECTORS[0].waves[0].dock;
 export const REPLAY: Point = { x: 0.5, y: 0.77 };
 export const near = (a: Point, b: Point, radius = 0.14) =>
   Math.hypot(a.x - b.x, a.y - b.y) < radius;
@@ -51,6 +115,8 @@ export type Game = {
   phase: Phase;
   task: Task;
   module: number;
+  wave: number;
+  startLevel: number;
   remaining: number;
   score: number;
   hold: number;
@@ -78,27 +144,33 @@ export type Game = {
 export function currentSector(game: Game): Sector {
   return SECTORS[Math.min(game.module, SECTORS.length - 1)];
 }
+export function currentWave(game: Game): Wave {
+  const sector = currentSector(game);
+  return sector.waves[Math.min(game.wave, sector.waves.length - 1)];
+}
 export function swipeLane(game: Game): number {
-  return game.module === 2 && game.swipesLeft === 1
-    ? 0.31
-    : currentSector(game).lane;
+  const wave = currentWave(game);
+  return wave.lanes[wave.lanes.length - game.swipesLeft] ?? wave.lanes[0];
 }
 export function gradeGame(game: Game): "S" | "A" | "B" | "C" {
   if (!game.finished) return "C";
-  if (game.correctionCount === 0 && game.remaining >= 45000) return "S";
-  if (game.correctionCount <= 2 && game.remaining >= 20000) return "A";
-  return game.correctionCount <= 5 ? "B" : "C";
+  if (game.correctionCount === 0) return "S";
+  if (game.correctionCount <= 3) return "A";
+  return game.correctionCount <= 8 ? "B" : "C";
 }
-export function newGame(): Game {
+export function newGame(startLevel = 0): Game {
+  const level = Math.max(0, Math.min(SECTORS.length - 1, Math.floor(startLevel)));
   return {
     phase: "calibration",
     task: "carry",
-    module: 0,
-    remaining: 90000,
+    module: level,
+    wave: 0,
+    startLevel: level,
+    remaining: SECTORS[level].timeMs,
     score: 0,
     hold: 0,
     carrying: false,
-    cell: { ...SOURCE },
+    cell: { ...SECTORS[level].waves[0].source },
     previousPinch: false,
     armed: false,
     hint: "Покажи раскрытую ладонь в центре кадра.",
@@ -161,27 +233,37 @@ function nextTask(s: Game) {
   if (completed === "carry") s.task = "charge";
   else if (completed === "charge") {
     s.task = "clear";
-    s.swipesLeft = s.phase === "tutorial" ? 1 : currentSector(s).swipes;
+    s.swipesLeft = s.phase === "tutorial" ? 1 : currentWave(s).lanes.length;
   } else if (s.phase === "tutorial") {
     s.phase = "ready";
     s.armed = false;
     s.task = "carry";
-    s.cell = { ...SOURCE };
+    s.cell = { ...currentWave(s).source };
     s.swipesLeft = 1;
   } else {
-    s.module++;
-    if (s.module === SECTORS.length) {
-      s.phase = "result";
-      s.finished = true;
-      s.armed = false;
-      s.score += Math.floor(s.remaining / 1000) * 5;
-    } else {
-      s.phase = "interlude";
-      s.interludeRemaining = 1800;
+    if (s.wave + 1 < currentSector(s).waves.length) {
+      s.wave++;
       s.task = "carry";
       s.swipesLeft = 1;
-      s.cell = { ...currentSector(s).source };
-      s.hint = `${SECTORS[s.module - 1].name} восстановлена. Дальше — ${currentSector(s).name.toLowerCase()}.`;
+      s.cell = { ...currentWave(s).source };
+      s.hint = `Узел ${s.wave} восстановлен. Найди следующую ячейку слева.`;
+    } else {
+      s.score += Math.floor(s.remaining / 1000) * 5;
+      s.module++;
+      if (s.module === SECTORS.length) {
+        s.phase = "result";
+        s.finished = true;
+        s.armed = false;
+      } else {
+        s.phase = "interlude";
+        s.interludeRemaining = 1800;
+        s.wave = 0;
+        s.task = "carry";
+        s.swipesLeft = 1;
+        s.remaining = currentSector(s).timeMs;
+        s.cell = { ...currentWave(s).source };
+        s.hint = `${SECTORS[s.module - 1].name} восстановлена. Дальше — ${currentSector(s).name.toLowerCase()}.`;
+      }
     }
   }
 }
@@ -197,7 +279,7 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
     s.interludeRemaining = Math.max(0, s.interludeRemaining - dt);
     if (s.interludeRemaining === 0) {
       s.phase = "playing";
-      s.hint = `Модуль ${s.module + 1}: ${currentSector(s).goal.toLowerCase()}. Захвати ячейку слева.`;
+      s.hint = `Уровень ${s.module + 1}: ${currentSector(s).goal.toLowerCase()}. Захвати ячейку слева.`;
       s.previousPinch = hand.pinch;
     }
     return s;
@@ -211,7 +293,7 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
     // Losing the hand cannot be interpreted as releasing a carried cell.
     if (s.carrying) {
       s.carrying = false;
-      s.cell = { ...currentSector(s).source };
+      s.cell = { ...currentWave(s).source };
     }
     s.previousPinch = false;
     if (s.phase === "ready" || s.phase === "result") s.armed = true;
@@ -249,8 +331,8 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
     );
     if (s.hold >= 1300) {
       if (s.phase === "result")
-        return { ...newGame(), phase: "ready", armed: false };
-      Object.assign(s, newGame(), {
+        return { ...newGame(s.finished ? 0 : s.module), phase: "ready", armed: false };
+      Object.assign(s, newGame(s.startLevel), {
         phase: "playing",
         event: s.event + 1,
         paused: false,
@@ -268,25 +350,29 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
         return s;
       }
     }
-    const sector = currentSector(s);
+    const wave = currentWave(s);
     if (s.task === "carry") {
       if (s.carrying) {
         s.cell = { ...hand.pointer };
         cue(
           s,
-          near(hand.pointer, sector.dock)
+          near(hand.pointer, wave.dock)
             ? "Разожми пальцы — ячейка в порту."
-            : "Держи пальцы вместе и перенеси ячейку в порт.",
+            : wave.decoy && near(hand.pointer, wave.decoy)
+              ? "Это ложный порт. Нужен зелёный, а не янтарный круг."
+              : "Держи пальцы вместе и перенеси ячейку в зелёный порт.",
         );
         if (!hand.pinch) {
           s.carrying = false;
-          if (near(hand.pointer, sector.dock)) nextTask(s);
+          if (near(hand.pointer, wave.dock)) nextTask(s);
           else {
-            s.cell = { ...sector.source };
+            s.cell = { ...wave.source };
             s.combo = 0;
             cue(
               s,
-              "Разжал слишком рано. Донеси ячейку до кольца справа.",
+              wave.decoy && near(hand.pointer, wave.decoy)
+                ? "Это ложный порт. Захвати ячейку снова и донеси до зелёного кольца."
+                : "Разжал слишком рано. Донеси ячейку до зелёного кольца справа.",
               true,
             );
             s.hintHold = 1800;
@@ -300,13 +386,13 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
       } else if (
         hand.pinch &&
         !s.previousPinch &&
-        near(hand.pointer, sector.source, 0.16)
+        near(hand.pointer, wave.source, 0.16)
       ) {
         s.hintHold = 0;
         s.carrying = true;
         s.cell = { ...hand.pointer };
         cue(s, "Захват! Перенеси ячейку вправо, не разжимая пальцы.");
-      } else if (!near(hand.pointer, sector.source, 0.16))
+      } else if (!near(hand.pointer, wave.source, 0.16))
         cue(s, "Наведи курсор на ячейку слева.", hand.pinch);
       else if (hand.pinch)
         cue(s, "Разожми пальцы и снова сделай щипок над ячейкой.", true);
@@ -317,7 +403,7 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
           hand.pinchRatio < 0.9,
         );
     } else if (s.task === "charge") {
-      const inDock = near(hand.pointer, sector.dock, 0.18);
+      const inDock = near(hand.pointer, wave.dock, 0.18);
       s.hold =
         hand.open && inDock ? s.hold + dt : Math.max(0, s.hold - dt * 0.5);
       if (!hand.open)
@@ -325,7 +411,7 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
       else if (!inDock)
         cue(s, "Перемести раскрытую ладонь в кольцо справа.", true);
       else cue(s, "Держи ладонь здесь. Модуль заряжается.");
-      if (s.hold >= sector.chargeMs) nextTask(s);
+      if (s.hold >= wave.chargeMs) nextTask(s);
     } else {
       const lane = swipeLane(s);
       if (hand.swipeRight && hand.open) {
@@ -334,15 +420,15 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
             award(s, 50);
             s.swipesLeft--;
             s.event++;
-            s.hint =
-              "Нижняя помеха устранена. Проведи ещё раз через верхнюю полосу.";
-            s.feedback = "Осталась верхняя помеха";
+            const nextLane = swipeLane(s);
+            s.hint = `Поток расчищен. Проведи ещё раз через ${nextLane < 0.43 ? "верхнюю" : nextLane > 0.6 ? "нижнюю" : "среднюю"} полосу.`;
+            s.feedback = `Осталось потоков: ${s.swipesLeft}`;
           } else nextTask(s);
         } else {
           s.combo = 0;
           cue(
             s,
-            `Взмахни через ${lane < 0.5 ? "верхнюю" : "нижнюю"} отмеченную полосу.`,
+            `Взмахни через ${lane < 0.43 ? "верхнюю" : lane > 0.6 ? "нижнюю" : "среднюю"} отмеченную полосу.`,
             true,
           );
           s.hintHold = 1500;
@@ -360,7 +446,7 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
       else
         cue(
           s,
-          `Начни слева и проведи раскрытой ладонью через ${lane < 0.5 ? "верхнюю" : "нижнюю"} полосу вправо.`,
+          `Начни слева и проведи раскрытой ладонью через ${lane < 0.43 ? "верхнюю" : lane > 0.6 ? "нижнюю" : "среднюю"} полосу вправо.`,
         );
     }
     if (s.phase === "playing") {

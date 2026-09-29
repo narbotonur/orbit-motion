@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { observation } from "../fixtures.ts";
-import { REPLAY, currentSector, swipeLane } from "../../src/game/engine.ts";
+import { REPLAY, SECTORS, currentWave, swipeLane } from "../../src/game/engine.ts";
 import type { Game } from "../../src/game/engine.ts";
 import type { Observation } from "../../src/vision/gestures.ts";
 
@@ -19,17 +19,17 @@ async function phase(page: Page, name: string) {
   await expect.poll(async () => (await state(page)).phase).toBe(name);
 }
 async function cycle(page: Page) {
-  const sector = currentSector(await state(page));
-  await feed(page, { pointer: sector.source, pinch: false });
+  const wave = currentWave(await state(page));
+  await feed(page, { pointer: wave.source, pinch: false });
   await page.waitForTimeout(100);
-  await feed(page, { pointer: sector.source, pinch: true, open: false });
+  await feed(page, { pointer: wave.source, pinch: true, open: false });
   await expect.poll(async () => (await state(page)).carrying).toBe(true);
-  await feed(page, { pointer: sector.dock, pinch: true, open: false });
+  await feed(page, { pointer: wave.dock, pinch: true, open: false });
   await page.waitForTimeout(100);
-  await feed(page, { pointer: sector.dock });
+  await feed(page, { pointer: wave.dock });
   await expect.poll(async () => (await state(page)).task).toBe("charge");
   await expect.poll(async () => (await state(page)).task).toBe("clear");
-  for (let i = 0; i < sector.swipes; i++) {
+  for (let i = 0; i < wave.lanes.length; i++) {
     const before = (await state(page)).event;
     await feed(page, {
       pointer: { x: 0.75, y: swipeLane(await state(page)) },
@@ -67,9 +67,16 @@ test("real WASM initializes, then deterministic observations complete the UI flo
   await expect(
     page.getByText("Таймер на паузе · верни руку в кадр"),
   ).toBeVisible();
-  for (let i = 0; i < 3; i++) {
-    await cycle(page);
-    if (i < 2) {
+  for (let i = 0; i < SECTORS.length; i++) {
+    for (let wave = 0; wave < SECTORS[i].waves.length; wave++) {
+      await cycle(page);
+      if (wave < SECTORS[i].waves.length - 1)
+        await expect.poll(async () => (await state(page)).wave).toBe(wave + 1);
+    }
+    await expect.poll(async () => (await state(page)).module).toBe(i + 1);
+    if (i === 0)
+      expect(await page.evaluate(() => localStorage.getItem("orbit-motion:unlocked-level:v1"))).toBe("1");
+    if (i < SECTORS.length - 1) {
       await phase(page, "interlude");
       if (i === 0)
         await page.screenshot({
@@ -78,7 +85,7 @@ test("real WASM initializes, then deterministic observations complete the UI flo
         });
       await phase(page, "playing");
       await expect(page.locator(".sector-status")).toContainText(
-        i === 0 ? "Навигация" : "Жизнеобеспечение",
+        SECTORS[i + 1].name,
       );
     }
   }
@@ -89,11 +96,12 @@ test("real WASM initializes, then deterministic observations complete the UI flo
   await expect(
     page.getByRole("heading", { name: "Первый шаг сделан" }),
   ).toBeVisible();
-  expect((await state(page)).score).toBeGreaterThan(1050);
+  expect((await state(page)).score).toBeGreaterThan(7500);
+  expect(await page.evaluate(() => localStorage.getItem("orbit-motion:unlocked-level:v1"))).toBe("9");
   expect(
     await page.evaluate(
       () =>
-        JSON.parse(localStorage.getItem("orbit-motion:local-runs:v1") || "[]")
+        JSON.parse(localStorage.getItem("orbit-motion:local-runs:v2") || "[]")
           .length,
     ),
   ).toBe(1);
@@ -116,6 +124,8 @@ test("real WASM initializes, then deterministic observations complete the UI flo
   await expect(
     page.getByRole("button", { name: "Подключить камеру" }),
   ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Уровень 10: Центральное ядро" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Уровень 10: Центральное ядро" })).toHaveAttribute("aria-pressed", "true");
   expect(uncaught).toEqual([]);
 });
 test("camera denial is recoverable with instructions and retry", async ({

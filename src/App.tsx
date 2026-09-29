@@ -11,7 +11,7 @@ import {
   SECTORS,
 } from "./game/engine.ts";
 import type { Game } from "./game/engine.ts";
-import { readRuns, saveRun } from "./game/storage.ts";
+import { readRuns, readUnlocked, saveRun, unlockLevel } from "./game/storage.ts";
 import { unlockAudio, chime } from "./game/audio.ts";
 import { Board, Station } from "./ui/Board.tsx";
 import { Icon, OrbitMark } from "./ui/Icons.tsx";
@@ -70,6 +70,8 @@ export default function App() {
   const [game, setGame] = useState<Game>(newGame);
   const [hand, setHand] = useState<Observation>(() => emptyObservation(0));
   const [runs, setRuns] = useState(readRuns);
+  const [unlocked, setUnlocked] = useState(readUnlocked);
+  const [selectedLevel, setSelectedLevel] = useState(readUnlocked);
   const [storageOk, setStorageOk] = useState(true);
   const video = useRef<HTMLVideoElement>(null);
   const aborter = useRef<AbortController | null>(null);
@@ -78,7 +80,7 @@ export default function App() {
     soundRef = useRef(true);
   const testInput = useRef<Observation | null>(null);
   const busy = useRef(false);
-  const best = Math.max(0, ...runs.map((r) => r.score));
+  const best = Math.max(0, ...runs.filter((r) => r.startLevel === game.startLevel).map((r) => r.score));
   const stop = useCallback(() => {
     aborter.current?.abort();
     aborter.current = null;
@@ -103,7 +105,8 @@ export default function App() {
     setError("");
     setActive(true);
     setLoading(true);
-    gameRef.current = newGame();
+    setStorageOk(true);
+    gameRef.current = newGame(selectedLevel);
     setGame(gameRef.current);
     handRef.current = emptyObservation(0);
     await unlockAudio();
@@ -151,7 +154,14 @@ export default function App() {
               ? emptyObservation(now)
               : handRef.current;
         const oldPhase = gameRef.current.phase;
+        const oldModule = gameRef.current.module;
         gameRef.current = stepGame(gameRef.current, observation, dt);
+        if (gameRef.current.module > oldModule) {
+          const nextUnlocked = Math.min(gameRef.current.module, SECTORS.length - 1);
+          setStorageOk(unlockLevel(nextUnlocked));
+          setUnlocked(readUnlocked());
+          setSelectedLevel(nextUnlocked);
+        }
         if (observation.swipeRight) {
           handRef.current = { ...handRef.current, swipeRight: false };
           if (testInput.current)
@@ -163,16 +173,16 @@ export default function App() {
         }
         if (gameRef.current.phase === "result" && oldPhase !== "result") {
           const g = gameRef.current;
-          setStorageOk(
-            saveRun({
+          const saved = saveRun({
               score: g.score,
               modules: g.module,
+              startLevel: g.startLevel,
               corrections: g.correctionCount,
               seconds: Math.round(g.elapsed / 1000),
               finished: g.finished,
               date: new Date().toISOString(),
-            }),
-          );
+            });
+          setStorageOk((previous) => previous && saved);
           setRuns(readRuns());
         }
         if (now - paint > 50) {
@@ -219,7 +229,7 @@ export default function App() {
     tutorial: "Тренировочный полёт",
     ready: "Всё готово",
     playing: "Миссия",
-    interlude: "Система восстановлена",
+    interlude: "Уровень пройден",
     result: "Итоги миссии",
   }[game.phase];
   const sector = currentSector(game);
@@ -294,8 +304,8 @@ export default function App() {
               </h1>
               <p className="hero-description">
                 Орбитальная станция потеряла связь.
-                <br className="desktop-break" /> Верни её в строй тремя
-                движениями руки.
+                <br className="desktop-break" /> Пройди 10 уровней и верни её
+                в строй движениями руки.
               </p>
               <p className="hero-purpose">
                 Игра проверяет основу будущего интерфейса для обучения: выбрать,
@@ -306,7 +316,7 @@ export default function App() {
                 <Icon name="arrow" size={20} />
               </button>
               <div className="hero-notes">
-                <span>90 секунд</span>
+                <span>10 уровней</span>
                 <i /> <span>3 жеста</span>
                 <i />
                 <span>Без установки</span>
@@ -344,9 +354,36 @@ export default function App() {
                 <span className="mission-badge">
                   <span className="pulse-dot" /> Ожидаем оператора
                 </span>
-                <span className="mono">01 — 03</span>
+                <span className="mono">01 — 10</span>
               </div>
             </div>
+          </section>
+          <section className="campaign-section" aria-labelledby="campaign-title">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">КАМПАНИЯ / 10 УРОВНЕЙ</span>
+                <h2 id="campaign-title">Восстанови станцию по частям.</h2>
+              </div>
+              <p>Пройденные уровни открывают следующие. Прогресс хранится на этом устройстве.</p>
+            </div>
+            <div className="level-grid">
+              {SECTORS.map((level, index) => (
+                <button
+                  key={level.name}
+                  type="button"
+                  className={`level-card ${index === selectedLevel ? "selected" : ""} ${index > unlocked ? "locked" : ""}`}
+                  disabled={index > unlocked}
+                  onClick={() => setSelectedLevel(index)}
+                  aria-pressed={index === selectedLevel}
+                  aria-label={`Уровень ${index + 1}: ${level.name}${index > unlocked ? ", закрыт" : ""}`}
+                >
+                  <span className="mono">{String(index + 1).padStart(2, "0")} / {level.act}</span>
+                  <strong>{level.name}</strong>
+                  <small>{index > unlocked ? "Закрыт" : index < unlocked ? "Открыт" : "Следующий"} · {Math.ceil(level.timeMs / 1000)} с</small>
+                </button>
+              ))}
+            </div>
+            <p className="campaign-selection">Выбран уровень {selectedLevel + 1} · {SECTORS[selectedLevel].name}. После обучения начнёшь с него.</p>
           </section>
           <section className="gesture-section" aria-labelledby="gesture-title">
             <div className="section-heading">
@@ -439,14 +476,14 @@ export default function App() {
         <main className="mission-layout">
           <div className="mission-title">
             <div>
-              <span className="eyebrow">ОПЕРАЦИЯ / ВОССТАНОВЛЕНИЕ СВЯЗИ</span>
+              <span className="eyebrow">ОПЕРАЦИЯ / ВОССТАНОВЛЕНИЕ СТАНЦИИ</span>
               <h1>{phaseLabel}</h1>
             </div>
             <div className="mission-metrics">
               <div>
-                <span>МОДУЛИ</span>
+                <span>УРОВЕНЬ</span>
                 <b>
-                  {game.module}
+                  {Math.min(game.module + 1, SECTORS.length)}
                   <small>/{SECTORS.length}</small>
                 </b>
               </div>
@@ -456,19 +493,26 @@ export default function App() {
               </div>
               <div className={game.remaining < 20000 ? "time-low" : ""}>
                 <span>
-                  {game.paused && game.phase === "playing" ? "ПАУЗА" : "ВРЕМЯ"}
+                  {game.paused && game.phase === "playing" ? "ПАУЗА" : game.phase === "result" ? "ОСТАТОК" : "ВРЕМЯ"}
                 </span>
                 <b>
                   {game.phase === "playing" ||
                   game.phase === "interlude" ||
                   game.phase === "result"
                     ? Math.ceil(game.remaining / 1000)
-                    : "90"}
+                    : Math.ceil(sector.timeMs / 1000)}
                   <small>с</small>
                 </b>
               </div>
             </div>
           </div>
+          {!loading && !error && (
+            <div className="campaign-progress" aria-label={`Пройдено ${game.module} из ${SECTORS.length} уровней`}>
+              {SECTORS.map((level, index) => (
+                <span key={level.name} className={index < game.module ? "done" : index === game.module ? "current" : ""} title={`Уровень ${index + 1}: ${level.name}`} />
+              ))}
+            </div>
+          )}
           {(game.phase === "tutorial" ||
             game.phase === "ready" ||
             game.phase === "playing" ||
@@ -480,10 +524,10 @@ export default function App() {
                   <span className="mono">
                     {game.phase === "tutorial"
                       ? "ОБУЧЕНИЕ"
-                      : `СИСТЕМА ${String(game.module + 1).padStart(2, "0")} / 03`}
+                      : `УРОВЕНЬ ${String(game.module + 1).padStart(2, "0")} / ${SECTORS.length}`}
                   </span>
                   <strong>{sector.name}</strong>
-                  <small>{sector.goal}</small>
+                  <small>{sector.act} · {sector.goal} · узел {game.wave + 1}/{sector.waves.length}</small>
                 </div>
                 <div className="sector-steps" aria-label="Этапы восстановления">
                   {(["carry", "charge", "clear"] as const).map(
@@ -560,8 +604,7 @@ export default function App() {
             </div>
             {game.phase === "result" && !storageOk && (
               <p className="storage-notice">
-                Браузер не разрешил сохранить рекорд. Результат этой миссии
-                показан выше.
+                Браузер не разрешил сохранить рекорд или открытый уровень. Результат этой миссии показан выше.
               </p>
             )}
           </div>
@@ -707,7 +750,7 @@ export default function App() {
                     {game.phase === "playing" &&
                     game.task === "clear" &&
                     game.swipesLeft > 1
-                      ? " В последнем модуле нужно очистить два потока."
+                      ? ` Осталось очистить ${game.swipesLeft} потока.`
                       : ""}
                   </p>
                 )}

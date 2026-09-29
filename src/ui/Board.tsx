@@ -2,6 +2,7 @@ import {
   REPLAY,
   SECTORS,
   currentSector,
+  currentWave,
   gradeGame,
   swipeLane,
   taskNames,
@@ -92,12 +93,12 @@ export function Station({ repaired = 0 }: { repaired?: number }) {
           fill={repaired ? "#b6f3ca" : "#c3a579"}
           opacity=".85"
         />
-        {[0, 1, 2].map((i) => (
+        {SECTORS.map((_, i) => (
           <rect
             key={i}
-            x={285 + i * 12}
+            x={261 + i * 9}
             y="266"
-            width="7"
+            width="6"
             height="10"
             rx="2"
             fill={i < repaired ? "#b6f3ca" : "#3b5548"}
@@ -121,12 +122,13 @@ export function Board({
   const tutorial = mode === "tutorial";
   const tasking = tutorial || mode === "playing";
   const sector = currentSector(game);
+  const wave = currentWave(game);
   const lane = swipeLane(game);
   const holdDuration =
     mode === "calibration"
       ? 900
       : tasking && game.task === "charge"
-        ? sector.chargeMs
+        ? wave.chargeMs
         : 1300;
   const progress = Math.min(1, game.hold / holdDuration);
   return (
@@ -176,15 +178,15 @@ export function Board({
                 aria-hidden="true"
               >
                 <path
-                  d={`M${sector.source.x * 1000} ${sector.source.y * 1000} C${sector.source.x * 1000 + 140} ${sector.source.y * 1000 + 120} ${sector.dock.x * 1000 - 140} ${sector.dock.y * 1000 - 120} ${sector.dock.x * 1000} ${sector.dock.y * 1000}`}
+                  d={`M${wave.source.x * 1000} ${wave.source.y * 1000} C${wave.source.x * 1000 + 140} ${wave.source.y * 1000 + 120} ${wave.dock.x * 1000 - 140} ${wave.dock.y * 1000 - 120} ${wave.dock.x * 1000} ${wave.dock.y * 1000}`}
                 />
                 <path
-                  d={`M${sector.dock.x * 1000 - 30} ${sector.dock.y * 1000 - 20} L${sector.dock.x * 1000} ${sector.dock.y * 1000} L${sector.dock.x * 1000 - 30} ${sector.dock.y * 1000 + 20}`}
+                  d={`M${wave.dock.x * 1000 - 30} ${wave.dock.y * 1000 - 20} L${wave.dock.x * 1000} ${wave.dock.y * 1000} L${wave.dock.x * 1000 - 30} ${wave.dock.y * 1000 + 20}`}
                 />
               </svg>
               <div
                 className="source-label"
-                style={{ ...place(sector.source), marginTop: "-58px" }}
+                style={{ ...place(wave.source), marginTop: "-58px" }}
               >
                 ЭНЕРГОЯЧЕЙКА
               </div>
@@ -196,10 +198,16 @@ export function Board({
               </div>
             </>
           )}
+          {game.task === "carry" && wave.decoy && !tutorial && (
+            <div className="decoy-dock" style={place(wave.decoy)} aria-label="Ложный порт">
+              <span>×</span>
+              <small>ЛОЖНЫЙ ПОРТ</small>
+            </div>
+          )}
           {game.task !== "clear" && (
             <div
               className={`dock ${game.task === "charge" ? "charging" : ""}`}
-              style={place(sector.dock)}
+              style={place(wave.dock)}
             >
               <svg viewBox="0 0 100 100" aria-hidden="true">
                 <circle cx="50" cy="50" r="46" className="track" />
@@ -234,9 +242,9 @@ export function Board({
             </div>
           )}
           <div className="field-bottom">
-            <span>{String(game.module + 1).padStart(2, "0")} / 03</span>
+            <span>{String(game.module + 1).padStart(2, "0")} / {SECTORS.length}</span>
             <span>
-              {sector.name} · {taskNames[game.task]}
+              {sector.name} · узел {game.wave + 1}/{sector.waves.length} · {taskNames[game.task]}
             </span>
           </div>
         </>
@@ -270,9 +278,9 @@ export function Board({
           <span className="tag dark-tag">ОБУЧЕНИЕ ПРОЙДЕНО</span>
           <h2>Миссия в твоих руках.</h2>
           <p>
-            3 модуля. 90 секунд.
+            10 уровней. У каждого свой таймер.
             <br />
-            Подключи, заряди и расчисти каждый.
+            Начнём с уровня {game.module + 1}: {sector.name.toLowerCase()}.
           </p>
           <div className="gesture-button">
             <Icon name="hand" />
@@ -290,7 +298,7 @@ export function Board({
         <div className="field-center sector-interlude">
           <Station repaired={game.module} />
           <span className="tag dark-tag">
-            СИСТЕМА {String(game.module).padStart(2, "0")} / 03 ВОССТАНОВЛЕНА
+            УРОВЕНЬ {String(game.module).padStart(2, "0")} / {SECTORS.length} ПРОЙДЕН
           </span>
           <h2>{SECTORS[game.module - 1].name} работает.</h2>
           <p>Следующая цель — {sector.goal.toLowerCase()}.</p>
@@ -308,13 +316,13 @@ export function Board({
           <OrbitMark size={48} />
           <span className="tag dark-tag">
             {game.finished
-              ? `ВСЕ СИСТЕМЫ ВОССТАНОВЛЕНЫ · РАНГ ${gradeGame(game)}`
-              : `ВРЕМЯ МИССИИ ИСТЕКЛО · РАНГ ${gradeGame(game)}`}
+              ? `${game.startLevel === 0 ? "ВСЕ 10 УРОВНЕЙ ПРОЙДЕНЫ" : "ФИНАЛЬНЫЙ УРОВЕНЬ ПРОЙДЕН"} · РАНГ ${gradeGame(game)}`
+              : `УРОВЕНЬ ${game.module + 1} НЕ ПРОЙДЕН · ПОПРОБУЙ ЕЩЁ РАЗ`}
           </span>
           <h2>
             {game.finished
               ? "Станция снова в строю."
-              : "Есть контакт. Ещё попытку?"}
+              : `Повтори «${sector.name}».`}
           </h2>
           <div className="final-score">
             {game.score}
@@ -322,7 +330,7 @@ export function Board({
           </div>
           <div className="result-stats">
             <span>
-              <b>{game.module}/3</b> модуля
+              <b>{game.module - game.startLevel}/{SECTORS.length - game.startLevel}</b> уровней
             </span>
             <span>
               <b>x{game.bestCombo}</b> лучшая серия
@@ -340,7 +348,7 @@ export function Board({
         <div className="replay-target" style={place(REPLAY)}>
           <div className="gesture-button">
             <Icon name="hand" />
-            <span>Ещё миссия</span>
+            <span>{game.finished ? "Новая кампания" : "Повторить уровень"}</span>
             <div style={{ width: `${progress * 100}%` }} />
           </div>
           <small>
