@@ -58,6 +58,12 @@ const gestures = [
     detail: "Взмах вправо",
     text: "Проведи раскрытой ладонью и убери помеху.",
   },
+  {
+    icon: "pinch",
+    name: "Настрой связь",
+    detail: "Две руки одновременно",
+    text: "Левой рукой подбери частоту, правой подключи провод. Раскрой обе ладони для передачи.",
+  },
 ];
 
 export default function App() {
@@ -124,6 +130,7 @@ export default function App() {
           handRef.current = emptyObservation(0);
         },
         controller.signal,
+        { numHands: 2 },
       );
       if (!controller.signal.aborted) setLoading(false);
     } catch (e) {
@@ -234,7 +241,7 @@ export default function App() {
   }[game.phase];
   const sector = currentSector(game);
   const currentTask =
-    game.task === "carry" ? 0 : game.task === "charge" ? 1 : 2;
+    game.task === "carry" ? 0 : game.task === "charge" ? 1 : game.task === "clear" ? 2 : 3;
 
   return (
     <div className={`app ${active ? "in-mission" : ""}`}>
@@ -308,7 +315,7 @@ export default function App() {
               <p className="hero-description">
                 Орбитальная станция потеряла связь.
                 <br className="desktop-break" /> Пройди 10 уровней и верни её
-                в строй движениями руки.
+                в строй движениями рук.
               </p>
               <p className="hero-purpose">
                 Игра проверяет основу будущего интерфейса для обучения: выбрать,
@@ -320,7 +327,7 @@ export default function App() {
               </button>
               <div className="hero-notes">
                 <span>10 уровней</span>
-                <i /> <span>3 жеста</span>
+                <i /> <span>Две руки · составные действия</span>
                 <i />
                 <span>Без установки</span>
               </div>
@@ -396,7 +403,7 @@ export default function App() {
             <div className="section-heading">
               <div>
                 <span className="eyebrow">ПРОСТОЙ ПЛАН СПАСЕНИЯ</span>
-                <h2 id="gesture-title">Три жеста. Одна миссия.</h2>
+                <h2 id="gesture-title">Две руки. Одна миссия.</h2>
               </div>
               <p>
                 Сначала потренируемся.
@@ -537,7 +544,7 @@ export default function App() {
                   <small>{sector.act} · {sector.goal} · узел {game.wave + 1}/{sector.waves.length}</small>
                 </div>
                 <div className="sector-steps" aria-label="Этапы восстановления">
-                  {(["carry", "charge", "clear"] as const).map(
+                  {(game.phase === "tutorial" ? ["carry", "charge", "clear"] as const : ["carry", "charge", "clear", "signal"] as const).map(
                     (task, index) => (
                       <span
                         key={task}
@@ -655,33 +662,33 @@ export default function App() {
                   className={`skeleton ${hand.pinch ? "pinched" : ""}`}
                   aria-hidden="true"
                 >
-                  {hand.points.length === 21 && (
-                    <>
+                  {[hand, hand.partner].filter((visible): visible is Observation => !!visible && visible.points.length === 21).map((visible, handIndex) => (
+                    <g key={handIndex}>
                       {connections.map(([a, b]) => (
                         <line
-                          key={`${a}-${b}`}
-                          x1={(1 - hand.points[a].x) * 1000}
-                          y1={hand.points[a].y * 1000}
-                          x2={(1 - hand.points[b].x) * 1000}
-                          y2={hand.points[b].y * 1000}
+                          key={`${handIndex}-${a}-${b}`}
+                          x1={(1 - visible.points[a].x) * 1000}
+                          y1={visible.points[a].y * 1000}
+                          x2={(1 - visible.points[b].x) * 1000}
+                          y2={visible.points[b].y * 1000}
                         />
                       ))}
-                      {hand.points.map((p, i) => (
+                      {visible.points.map((p, i) => (
                         <circle
-                          key={i}
+                          key={`${handIndex}-${i}`}
                           cx={(1 - p.x) * 1000}
                           cy={p.y * 1000}
                           r={i === 4 || i === 8 ? 10 : 5}
                         />
                       ))}
-                    </>
-                  )}
+                    </g>
+                  ))}
                 </svg>
                 <div className="camera-corners" />
                 {!hand.points.length && !loading && !error && (
                   <div className="camera-empty">
                     <Icon name="hand" size={34} />
-                    <span>Покажи одну руку</span>
+                    <span>Покажи руку</span>
                   </div>
                 )}
                 <span className="camera-local mono">LOCAL ONLY</span>
@@ -693,7 +700,7 @@ export default function App() {
                     : hand.open
                       ? "Раскрытая ладонь"
                       : hand.quality === "ok"
-                        ? "Рука видна"
+                        ? hand.partner?.quality === "ok" ? "Обе руки видны" : "Рука видна"
                         : "Нет сигнала"}
                 </span>
                 <span className="mono">
@@ -708,7 +715,7 @@ export default function App() {
                   <span className="mono">ORBIT → OYSAN</span>
                 </div>
                 <p>
-                  Три движения уже позволяют пройти задачу без клавиатуры. В
+                  Движения двух рук позволяют пройти задачу без клавиатуры. В
                   учебном интерфейсе они могут стать такими действиями:
                 </p>
                 <div>
@@ -723,6 +730,10 @@ export default function App() {
                   <span>Взмах</span>
                   <b>Перейти дальше</b>
                 </div>
+                <div>
+                  <span>Две руки</span>
+                  <b>Настроить параметр и объект одновременно</b>
+                </div>
                 <small>
                   Следующий этап — проверить эти действия в реальном уроке.
                 </small>
@@ -733,9 +744,9 @@ export default function App() {
                   <h2>
                     {game.phase === "tutorial" ? "Обучение" : "Управление"}
                   </h2>
-                  <span className="mono">01—03</span>
+                  <span className="mono">01—04</span>
                 </div>
-                {gestures.map((g, i) => (
+                {(game.phase === "tutorial" ? gestures.slice(0, 3) : gestures).map((g, i) => (
                   <div
                     key={g.name}
                     className={`control-step ${currentTask === i ? "current" : ""}`}
@@ -773,7 +784,7 @@ export default function App() {
           </aside>
           <div className="mission-footer">
             <span>
-              Курсор следует за рукой · Играй сидя · Одна рука в кадре
+              Курсор следует за рукой · Играй сидя · Для сигнала нужны обе руки
             </span>
             <span>
               Личный рекорд <b>{best}</b>

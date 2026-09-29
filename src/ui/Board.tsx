@@ -4,6 +4,8 @@ import {
   currentSector,
   currentWave,
   gradeGame,
+  signalFrequency,
+  SIGNAL_TOLERANCE,
   swipeLane,
   taskNames,
 } from "../game/engine.ts";
@@ -123,10 +125,13 @@ export function Board({
   const tasking = tutorial || mode === "playing";
   const sector = currentSector(game);
   const wave = currentWave(game);
+  const wireAnchorX = wave.source.x + 0.14;
   const lane = swipeLane(game);
   const holdDuration =
     mode === "calibration"
       ? 900
+      : tasking && game.task === "signal"
+        ? game.wireAttached ? 900 : 650
       : tasking && game.task === "charge"
         ? wave.chargeMs
         : 1300;
@@ -204,7 +209,7 @@ export function Board({
               <small>ЛОЖНЫЙ ПОРТ</small>
             </div>
           )}
-          {game.task !== "clear" && (
+          {(game.task === "carry" || game.task === "charge") && (
             <div
               className={`dock ${game.task === "charge" ? "charging" : ""}`}
               style={place(wave.dock)}
@@ -240,6 +245,49 @@ export function Board({
                 <span className="swipe-line">→</span>
               </div>
             </div>
+          )}
+          {game.task === "signal" && (
+            <>
+              <div className="signal-heading">
+                <strong>ВОССТАНОВИ СВЯЗЬ</strong>
+                <span>ЛЕВАЯ РУКА · ЧАСТОТА &nbsp; / &nbsp; ПРАВАЯ · ПРОВОД</span>
+              </div>
+              <div className="frequency-rail" aria-label="Настройка частоты левой рукой">
+                <span className="frequency-high">ВЫСОКАЯ</span>
+                <div className="frequency-track">
+                  <span
+                    className="frequency-target"
+                    style={{ bottom: `${(signalFrequency(game) - SIGNAL_TOLERANCE) * 100}%`, height: `${SIGNAL_TOLERANCE * 200}%` }}
+                  />
+                  {hand.partner?.quality === "ok" && (
+                    <span className="frequency-marker" style={{ bottom: `${(1 - hand.partner.pointer.y) * 100}%` }} />
+                  )}
+                </div>
+                <span className="frequency-low">НИЗКАЯ</span>
+                <b className={hand.partner && Math.abs(1 - hand.partner.pointer.y - signalFrequency(game)) <= SIGNAL_TOLERANCE ? "frequency-locked" : ""}>
+                  {hand.partner ? Math.round((1 - hand.partner.pointer.y) * 100) : "—"} / {Math.round(signalFrequency(game) * 100)}
+                </b>
+              </div>
+              <svg className={`wire-path ${game.wireAttached ? "attached" : ""}`} viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
+                <path d={`M${wireAnchorX * 1000} ${wave.source.y * 1000} Q${((wireAnchorX + game.cell.x) / 2) * 1000} ${Math.max(wave.source.y, game.cell.y) * 1000 + 90} ${game.cell.x * 1000} ${game.cell.y * 1000}`} />
+              </svg>
+              <div className="wire-source" style={place({ x: wireAnchorX, y: wave.source.y })}>ЛИНИЯ</div>
+              <div className={`wire-end ${game.carrying ? "dragging" : ""} ${game.wireAttached ? "attached" : ""}`} style={place(game.cell)}>
+                <span>ϟ</span>
+              </div>
+              <div className={`wire-socket ${game.wireAttached ? "attached" : ""}`} style={place(wave.dock)}>
+                <svg viewBox="0 0 100 100" aria-hidden="true">
+                  <circle cx="50" cy="50" r="44" className="socket-track" />
+                  <circle cx="50" cy="50" r="44" className="socket-progress" strokeDasharray={`${progress * 277} 277`} />
+                </svg>
+                <span>{game.wireAttached ? "СВЯЗЬ" : "РАЗЪЁМ"}</span>
+              </div>
+              <div className="signal-state">
+                <span className={hand.partner && Math.abs(1 - hand.partner.pointer.y - signalFrequency(game)) <= SIGNAL_TOLERANCE ? "done" : ""}>01 · НАСТРОЙ</span>
+                <span className={game.wireAttached ? "done" : game.carrying ? "active" : ""}>02 · СОЕДИНИ</span>
+                <span className={game.wireAttached ? "active" : ""}>03 · ПЕРЕДАЙ</span>
+              </div>
+            </>
           )}
           <div className="field-bottom">
             <span>{String(game.module + 1).padStart(2, "0")} / {SECTORS.length}</span>
@@ -366,9 +414,14 @@ export function Board({
           <span />
         </div>
       )}
+      {game.task === "signal" && tasking && hand.partner?.quality === "ok" && (
+        <div className="hand-cursor tuning-cursor" style={place(hand.partner.pointer)} aria-label="Левая рука: настройка частоты">
+          <span />
+        </div>
+      )}
       {game.paused && mode === "playing" && (
         <div className="tracking-pause">
-          <Icon name="pause" size={16} /> Таймер на паузе · верни руку в кадр
+          <Icon name="pause" size={16} /> Таймер на паузе · покажи обе руки целиком
         </div>
       )}
     </div>

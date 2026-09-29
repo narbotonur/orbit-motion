@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { observation } from "../fixtures.ts";
-import { REPLAY, SECTORS, currentWave, swipeLane } from "../../src/game/engine.ts";
+import { REPLAY, SECTORS, currentWave, swipeLane, signalFrequency } from "../../src/game/engine.ts";
 import type { Game } from "../../src/game/engine.ts";
 import type { Observation } from "../../src/vision/gestures.ts";
 
@@ -39,6 +39,20 @@ async function cycle(page: Page) {
       .poll(async () => (await state(page)).event)
       .toBeGreaterThan(before);
   }
+  if ((await state(page)).task === "signal") {
+    const left = observation({ pointer: { x: 0.15, y: 1 - signalFrequency(await state(page)) } });
+    await feed(page, { pointer: wave.source, partner: left });
+    await page.waitForTimeout(100);
+    await feed(page, { pointer: wave.source, pinch: true, open: false, partner: left });
+    await expect.poll(async () => (await state(page)).carrying).toBe(true);
+    await feed(page, { pointer: wave.dock, pinch: true, open: false, partner: left });
+    await expect.poll(async () => (await state(page)).wireAttached).toBe(true);
+    await feed(page, { pointer: wave.dock, partner: left });
+    await expect.poll(async () => {
+      const next = await state(page);
+      return next.task !== "signal" || next.phase === "result";
+    }).toBe(true);
+  }
 }
 test("real WASM initializes, then deterministic observations complete the UI flow", async ({
   page,
@@ -65,7 +79,7 @@ test("real WASM initializes, then deterministic observations complete the UI flo
   await page.waitForTimeout(1000);
   expect((await state(page)).remaining).toBe(pausedAt);
   await expect(
-    page.getByText("Таймер на паузе · верни руку в кадр"),
+    page.getByText("Таймер на паузе · покажи обе руки целиком"),
   ).toBeVisible();
   for (let i = 0; i < SECTORS.length; i++) {
     for (let wave = 0; wave < SECTORS[i].waves.length; wave++) {
@@ -164,4 +178,24 @@ test("mobile landing fits and has no automatic camera request", async ({
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+});
+test("two-hand signal repair has visible frequency and cable controls on desktop and phone", async ({ page }) => {
+  await page.goto("/?test=1");
+  await page.getByRole("button", { name: "Подключить камеру" }).click();
+  await expect(page.getByRole("heading", { name: "Установим связь" })).toBeVisible({ timeout: 45000 });
+  await page.evaluate(() => {
+    const game = (window as any).__orbitTest.state() as Game;
+    game.phase = "playing";
+    game.task = "signal";
+    game.hint = "Левой рукой найди частоту. Правой подключи провод.";
+  });
+  const target = signalFrequency(await state(page));
+  await feed(page, { pointer: SECTORS[0].waves[0].source, partner: observation({ pointer: { x: .14, y: 1 - target } }) });
+  await expect(page.locator(".task-signal .frequency-rail")).toBeVisible();
+  await expect(page.locator(".task-signal .wire-end")).toBeVisible();
+  await page.screenshot({ path: ".ops/screens/signal-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".task-signal .wire-socket")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: ".ops/screens/signal-mobile.png", fullPage: true });
 });

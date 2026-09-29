@@ -35,7 +35,8 @@ export async function startCamera(
   let busy = false;
   let lastFrame = 0;
   let busySince = 0;
-  const tracker = new GestureTracker();
+  const rightTracker = new GestureTracker();
+  const leftTracker = new GestureTracker();
   const stop = () => {
     stopped = true;
     cancelAnimationFrame(frameId);
@@ -96,12 +97,24 @@ export async function startCamera(
     worker.onmessage = (event) => {
       busy = false;
       if (event.data.type === "result") {
+        const now = performance.now();
+        const hands = (event.data.hands ?? []) as Point[][];
         options.onFrame?.({
-          at: performance.now(),
-          hands: event.data.hands ?? [],
+          at: now,
+          hands,
           handedness: event.data.handedness ?? [],
         });
-        onHand(tracker.observe(event.data.points, performance.now()));
+        if (options.numHands === 2 && hands.length > 1) {
+          // Sort by the mirrored preview, so the physical left hand remains
+          // the tuning hand even when MediaPipe changes detection order.
+          const displayed = [...hands].sort((a, b) => b[9].x - a[9].x);
+          const left = leftTracker.observe(displayed[0], now);
+          const right = rightTracker.observe(displayed[1], now);
+          onHand({ ...right, partner: left });
+        } else {
+          leftTracker.observe([], now);
+          onHand(rightTracker.observe(event.data.points, now));
+        }
       } else if (event.data.type === "error") {
         stop();
         onFatal("Распознавание остановилось. Перезапусти камеру.");

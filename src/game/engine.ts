@@ -3,7 +3,7 @@ import type { Observation, Point } from "../vision/gestures.ts";
 
 export type Phase =
   "calibration" | "tutorial" | "ready" | "playing" | "interlude" | "result";
-export type Task = "carry" | "charge" | "clear";
+export type Task = "carry" | "charge" | "clear" | "signal";
 type Wave = {
   source: Point;
   dock: Point;
@@ -23,35 +23,35 @@ export const SECTORS: readonly Sector[] = [
     name: "Связь",
     goal: "Вернуть сигнал станции",
     act: "Пробуждение",
-    timeMs: 45000,
+    timeMs: 75000,
     waves: [{ source: { x: 0.23, y: 0.59 }, dock: { x: 0.7, y: 0.46 }, chargeMs: 1200, lanes: [0.53] }],
   },
   {
     name: "Навигация",
     goal: "Открыть безопасный маршрут",
     act: "Пробуждение",
-    timeMs: 50000,
+    timeMs: 80000,
     waves: [{ source: { x: 0.24, y: 0.35 }, dock: { x: 0.72, y: 0.61 }, chargeMs: 1500, lanes: [0.32] }],
   },
   {
     name: "Жизнеобеспечение",
     goal: "Защитить экипаж",
     act: "Пробуждение",
-    timeMs: 55000,
+    timeMs: 85000,
     waves: [{ source: { x: 0.19, y: 0.66 }, dock: { x: 0.71, y: 0.34 }, chargeMs: 1800, lanes: [0.69, 0.31] }],
   },
   {
     name: "Солнечные панели",
     goal: "Развернуть питание станции",
     act: "Нестабильность",
-    timeMs: 60000,
+    timeMs: 90000,
     waves: [{ source: { x: 0.22, y: 0.41 }, dock: { x: 0.75, y: 0.61 }, chargeMs: 1800, lanes: [0.31, 0.69], decoy: { x: 0.72, y: 0.32 } }],
   },
   {
     name: "Защитный контур",
     goal: "Закрыть два повреждённых узла",
     act: "Нестабильность",
-    timeMs: 75000,
+    timeMs: 105000,
     waves: [
       { source: { x: 0.20, y: 0.34 }, dock: { x: 0.72, y: 0.39 }, chargeMs: 1600, lanes: [0.32] },
       { source: { x: 0.28, y: 0.69 }, dock: { x: 0.71, y: 0.65 }, chargeMs: 1800, lanes: [0.69] },
@@ -61,14 +61,14 @@ export const SECTORS: readonly Sector[] = [
     name: "Тепловой баланс",
     goal: "Очистить три канала охлаждения",
     act: "Нестабильность",
-    timeMs: 65000,
+    timeMs: 95000,
     waves: [{ source: { x: 0.20, y: 0.63 }, dock: { x: 0.70, y: 0.38 }, chargeMs: 2200, lanes: [0.69, 0.31, 0.53], decoy: { x: 0.72, y: 0.69 } }],
   },
   {
     name: "Ориентация",
     goal: "Выровнять станцию по двум осям",
     act: "Сближение",
-    timeMs: 80000,
+    timeMs: 110000,
     waves: [
       { source: { x: 0.25, y: 0.39 }, dock: { x: 0.68, y: 0.65 }, chargeMs: 1700, lanes: [0.31, 0.69] },
       { source: { x: 0.18, y: 0.65 }, dock: { x: 0.75, y: 0.37 }, chargeMs: 1900, lanes: [0.53] },
@@ -78,7 +78,7 @@ export const SECTORS: readonly Sector[] = [
     name: "Реактор",
     goal: "Перезапустить оба контура",
     act: "Сближение",
-    timeMs: 90000,
+    timeMs: 120000,
     waves: [
       { source: { x: 0.22, y: 0.60 }, dock: { x: 0.69, y: 0.35 }, chargeMs: 2100, lanes: [0.69, 0.31], decoy: { x: 0.72, y: 0.68 } },
       { source: { x: 0.25, y: 0.34 }, dock: { x: 0.73, y: 0.65 }, chargeMs: 2200, lanes: [0.31, 0.69] },
@@ -88,7 +88,7 @@ export const SECTORS: readonly Sector[] = [
     name: "Аварийный маяк",
     goal: "Пробить помехи и передать координаты",
     act: "Сближение",
-    timeMs: 95000,
+    timeMs: 125000,
     waves: [
       { source: { x: 0.19, y: 0.34 }, dock: { x: 0.73, y: 0.62 }, chargeMs: 2000, lanes: [0.31, 0.53, 0.69] },
       { source: { x: 0.28, y: 0.68 }, dock: { x: 0.68, y: 0.36 }, chargeMs: 2200, lanes: [0.69, 0.31] },
@@ -98,7 +98,7 @@ export const SECTORS: readonly Sector[] = [
     name: "Центральное ядро",
     goal: "Соединить все системы станции",
     act: "Финал",
-    timeMs: 110000,
+    timeMs: 140000,
     waves: [
       { source: { x: 0.20, y: 0.63 }, dock: { x: 0.72, y: 0.35 }, chargeMs: 2200, lanes: [0.69, 0.31], decoy: { x: 0.71, y: 0.68 } },
       { source: { x: 0.25, y: 0.34 }, dock: { x: 0.72, y: 0.65 }, chargeMs: 2400, lanes: [0.31, 0.69] },
@@ -140,6 +140,7 @@ export type Game = {
   bestCombo: number;
   swipesLeft: number;
   interludeRemaining: number;
+  wireAttached: boolean;
 };
 export function currentSector(game: Game): Sector {
   return SECTORS[Math.min(game.module, SECTORS.length - 1)];
@@ -152,6 +153,11 @@ export function swipeLane(game: Game): number {
   const wave = currentWave(game);
   return wave.lanes[wave.lanes.length - game.swipesLeft] ?? wave.lanes[0];
 }
+/** The target band varies by repair node; raising the left hand raises frequency. */
+export function signalFrequency(game: Game): number {
+  return [0.38, 0.62, 0.48, 0.72, 0.31][(game.module * 2 + game.wave) % 5];
+}
+export const SIGNAL_TOLERANCE = 0.105;
 export function gradeGame(game: Game): "S" | "A" | "B" | "C" {
   if (!game.finished) return "C";
   if (game.correctionCount === 0) return "S";
@@ -189,12 +195,14 @@ export function newGame(startLevel = 0): Game {
     bestCombo: 0,
     swipesLeft: 1,
     interludeRemaining: 0,
+    wireAttached: false,
   };
 }
 export const taskNames = {
   carry: "Подключи энергоячейку",
   charge: "Заряди модуль",
   clear: "Убери помеху",
+  signal: "Настрой сигнал и почини провод",
 };
 export const taskInstructions = {
   carry:
@@ -202,6 +210,7 @@ export const taskInstructions = {
   charge:
     "Раскрой ладонь и удерживай курсор в порту справа, пока кольцо не заполнится.",
   clear: "Раскрой ладонь и проведи ею слева направо через отмеченную полосу.",
+  signal: "ЛЕВОЙ рукой подбери частоту. ПРАВОЙ сделай щипок над концом провода, подведи его к разъёму и удержи. Затем раскрой обе ладони для передачи.",
 };
 function cue(s: Game, message: string, correction = false) {
   if (s.hintHold > 0) {
@@ -228,12 +237,19 @@ function nextTask(s: Game) {
       ? "Ячейка подключена"
       : completed === "charge"
         ? "Питание восстановлено"
-        : "Помеха устранена";
-  if (s.phase === "playing") award(s, completed === "clear" ? 150 : 100);
+        : completed === "clear"
+          ? "Помеха устранена"
+          : "Связь восстановлена";
+  if (s.phase === "playing") award(s, completed === "signal" ? 200 : completed === "clear" ? 150 : 100);
   if (completed === "carry") s.task = "charge";
   else if (completed === "charge") {
     s.task = "clear";
     s.swipesLeft = s.phase === "tutorial" ? 1 : currentWave(s).lanes.length;
+  } else if (completed === "clear" && s.phase === "playing") {
+    s.task = "signal";
+    s.cell = { ...currentWave(s).source };
+    s.wireAttached = false;
+    s.hint = "Левой рукой найди частоту. Правой захвати конец провода и подключи его.";
   } else if (s.phase === "tutorial") {
     s.phase = "ready";
     s.armed = false;
@@ -244,6 +260,7 @@ function nextTask(s: Game) {
     if (s.wave + 1 < currentSector(s).waves.length) {
       s.wave++;
       s.task = "carry";
+      s.wireAttached = false;
       s.swipesLeft = 1;
       s.cell = { ...currentWave(s).source };
       s.hint = `Узел ${s.wave} восстановлен. Найди следующую ячейку слева.`;
@@ -259,6 +276,7 @@ function nextTask(s: Game) {
         s.interludeRemaining = 1800;
         s.wave = 0;
         s.task = "carry";
+        s.wireAttached = false;
         s.swipesLeft = 1;
         s.remaining = currentSector(s).timeMs;
         s.cell = { ...currentWave(s).source };
@@ -284,10 +302,15 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
     }
     return s;
   }
-  s.paused = hand.quality !== "ok";
+  s.paused = hand.quality !== "ok" ||
+    (s.phase === "playing" && s.task === "signal" && hand.partner?.quality !== "ok");
   if (s.paused) {
     s.hintHold = 0;
-    cue(s, trackingHint(hand.quality), true);
+    cue(s, hand.quality !== "ok"
+      ? trackingHint(hand.quality)
+      : hand.partner && hand.partner.quality !== "missing"
+        ? `Левая рука видна не полностью. ${trackingHint(hand.partner.quality)}`
+        : "Покажи левую руку целиком: ею настраивается частота.", true);
     s.hold = 0;
     s.correctionTime = 0;
     // Losing the hand cannot be interpreted as releasing a carried cell.
@@ -412,6 +435,62 @@ export function stepGame(previous: Game, hand: Observation, dt: number): Game {
         cue(s, "Перемести раскрытую ладонь в кольцо справа.", true);
       else cue(s, "Держи ладонь здесь. Модуль заряжается.");
       if (s.hold >= wave.chargeMs) nextTask(s);
+    } else if (s.task === "signal") {
+      const left = hand.partner!;
+      const frequency = 1 - left.pointer.y;
+      const target = signalFrequency(s);
+      const tuned = Math.abs(frequency - target) <= SIGNAL_TOLERANCE;
+      const frequencyHint = frequency > target
+        ? "Частота слишком высокая — опусти левую руку."
+        : "Частота слишком низкая — подними левую руку.";
+      if (s.wireAttached) {
+        s.hold = tuned && left.open && hand.open ? s.hold + dt : 0;
+        if (!tuned) cue(s, frequencyHint, true);
+        else if (!left.open || !hand.open)
+          cue(s, "Контакт есть. Раскрой обе ладони, чтобы передать сигнал.", true);
+        else cue(s, "Сигнал передаётся. Удержи обе ладони открытыми.");
+        if (s.hold >= 900) nextTask(s);
+      } else if (s.carrying) {
+        if (!hand.pinch) {
+          s.carrying = false;
+          s.cell = { ...wave.source };
+          s.hold = 0;
+          cue(s, "Отпустил провод до фиксации. Захвати конец снова и удержи его в разъёме.", true);
+          s.hintHold = 1600;
+          s.correctionCount++;
+          s.lastCorrection = s.hint;
+          s.correctionTime = 0;
+          s.combo = 0;
+        } else {
+          s.cell = { ...hand.pointer };
+          const atSocket = near(hand.pointer, wave.dock, 0.13);
+          s.hold = atSocket && tuned ? s.hold + dt : 0;
+          if (!tuned) cue(s, frequencyHint, true);
+          else if (!atSocket)
+            cue(s, "Частота совпала. Правой рукой доведи провод до зелёного разъёма.", true);
+          else cue(s, "Контакт найден. Удержи щипок и частоту до фиксации.");
+          if (s.hold >= 650) {
+            s.wireAttached = true;
+            s.carrying = false;
+            s.cell = { ...wave.dock };
+            s.hold = 0;
+            s.event++;
+            s.feedback = "Провод закреплён";
+            cue(s, "Провод закреплён. Раскрой обе ладони для передачи.");
+          }
+        }
+      } else if (hand.pinch && !s.previousPinch && near(hand.pointer, wave.source, 0.16)) {
+        s.carrying = true;
+        s.cell = { ...hand.pointer };
+        cue(s, tuned
+          ? "Частота совпала. Правой рукой веди провод в разъём."
+          : frequencyHint, !tuned);
+      } else if (!tuned) cue(s, frequencyHint, true);
+      else if (!near(hand.pointer, wave.source, 0.16))
+        cue(s, "Частота совпала. Наведи правую руку на свободный конец провода.");
+      else if (hand.pinch)
+        cue(s, "Разожми правые пальцы и сделай новый щипок над концом провода.", true);
+      else cue(s, "Сделай щипок правой рукой над свободным концом провода.");
     } else {
       const lane = swipeLane(s);
       if (hand.swipeRight && hand.open) {

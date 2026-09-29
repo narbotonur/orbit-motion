@@ -367,7 +367,7 @@ button:hover {
 }
 .gesture-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
 }
 .campaign-section {
@@ -916,6 +916,61 @@ button:hover {
 .dock.charging > span {
   font-size: 25px;
 }
+.task-signal .station-backdrop { opacity: 0.14; }
+.signal-heading {
+  position: absolute;
+  top: 15%;
+  left: 16%;
+  right: 8%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 4;
+  pointer-events: none;
+}
+.signal-heading strong { font-size: clamp(13px, 1.5vw, 21px); letter-spacing: .07em; }
+.signal-heading span { color: #91b29c; font: 9px "Geist Mono", monospace; letter-spacing: .08em; }
+.frequency-rail {
+  position: absolute;
+  z-index: 5;
+  left: 5%;
+  top: 26%;
+  bottom: 21%;
+  width: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  color: #adc8b5;
+  pointer-events: none;
+}
+.frequency-rail > span { font: 7px "Geist Mono", monospace; letter-spacing: .04em; }
+.frequency-track { position: relative; width: 14px; flex: 1; border-radius: 9px; background: #203d34; border: 1px solid #5d8771; }
+.frequency-target { position: absolute; left: -6px; right: -6px; border: 1px solid #b6f3ca; border-radius: 7px; background: #b6f3ca40; box-shadow: 0 0 18px #b6f3ca4d; }
+.frequency-marker { position: absolute; left: -13px; right: -13px; height: 5px; transform: translateY(50%); border-radius: 4px; background: #fff; box-shadow: 0 0 10px #fff9; }
+.frequency-rail b { font: 10px "Geist Mono", monospace; white-space: nowrap; color: #deb880; }
+.frequency-rail b.frequency-locked { color: #b6f3ca; }
+.wire-path { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+.wire-path path { fill: none; stroke: #d3b894; stroke-width: 7; stroke-linecap: round; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 6px #a4dcb152); }
+.wire-path.attached path { stroke: #b6f3ca; filter: drop-shadow(0 0 9px #b6f3ca); }
+.wire-source, .wire-end, .wire-socket { position: absolute; transform: translate(-50%, -50%); display: grid; place-items: center; pointer-events: none; }
+.wire-source { width: 48px; height: 48px; background: #243e32; border: 2px solid #9eaf98; border-radius: 9px; color: #d8e7d5; font: 8px "Geist Mono", monospace; z-index: 3; }
+.wire-end { width: 40px; height: 40px; background: #e2cfaa; color: #173126; border: 3px solid #fff6d8; border-radius: 50%; z-index: 6; box-shadow: 0 0 20px #e2cfaa65; }
+.wire-end span { font-size: 25px; line-height: 1; }
+.wire-end.dragging { box-shadow: 0 0 0 7px #e2cfaa2e, 0 0 30px #e2cfaa9c; }
+.wire-end.attached { background: #b6f3ca; border-color: #e6fff1; box-shadow: 0 0 30px #b6f3ca9c; }
+.wire-socket { width: 106px; height: 106px; z-index: 4; }
+.wire-socket svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.wire-socket circle { fill: #193d31; stroke-width: 3; }
+.wire-socket .socket-track { stroke: #699883; stroke-dasharray: 5 5; }
+.wire-socket .socket-progress { fill: none; stroke: #b6f3ca; stroke-width: 6; stroke-linecap: round; }
+.wire-socket span { position: absolute; bottom: -20px; color: #c3e5cd; font: 9px "Geist Mono", monospace; }
+.wire-socket.attached .socket-track { stroke: #b6f3ca; }
+.signal-state { position: absolute; left: 16%; right: 8%; bottom: 15%; z-index: 4; display: flex; justify-content: space-between; gap: 6px; color: #789583; font: 9px "Geist Mono", monospace; pointer-events: none; }
+.signal-state .active { color: #e8c99a; }
+.signal-state .done { color: #b6f3ca; }
+.tuning-cursor { width: 27px; height: 27px; border-color: #e8c99a; box-shadow: 0 0 0 5px #e8c99a22; }
+.tuning-cursor span { background: #e8c99a; }
 .decoy-dock {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -1721,6 +1776,7 @@ button:hover {
     margin-top: 22px;
   }
   .gesture-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
   .gesture-card {
@@ -1827,6 +1883,12 @@ button:hover {
   }
 }
 @media (max-width: 500px) {
+  .frequency-rail { left: 1%; width: 40px; }
+  .frequency-rail > span { font-size: 6px; }
+  .signal-heading { left: 16%; right: 4%; }
+  .signal-heading span { font-size: 7px; }
+  .signal-state { left: 16%; right: 5%; font-size: 7px; }
+  .wire-socket { width: 88px; height: 88px; }
   .translator-promo { padding: 22px; }
   .translator-promo .primary-button { justify-content: center; }
   .level-card { min-height: 92px; padding: 12px; }

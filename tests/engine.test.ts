@@ -10,6 +10,7 @@ import {
   currentSector,
   currentWave,
   swipeLane,
+  signalFrequency,
   gradeGame,
 } from "../src/game/engine.ts";
 import type { Game } from "../src/game/engine.ts";
@@ -48,6 +49,15 @@ function cycle(s: Game) {
       observation({ pointer: { x: 0.75, y: swipeLane(s) }, swipeRight: true }),
       100,
     );
+  }
+  if (s.phase === "playing" && s.task === "signal") {
+    const left = observation({ pointer: { x: 0.16, y: 1 - signalFrequency(s) } });
+    s = stepGame(s, observation({ pointer: wave.source, partner: left }), 100);
+    s = stepGame(s, observation({ pointer: wave.source, pinch: true, open: false, partner: left }), 100);
+    assert.equal(s.carrying, true);
+    s = hold(s, observation({ pointer: wave.dock, pinch: true, open: false, partner: left }), 7);
+    assert.equal(s.wireAttached, true);
+    s = hold(s, observation({ pointer: wave.dock, partner: left }), 9);
   }
   return s;
 }
@@ -160,8 +170,9 @@ test("life support requires two sweeps in two different lanes", () => {
     observation({ pointer: { x: 0.75, y: 0.31 }, swipeRight: true }),
     100,
   );
-  assert.equal(s.phase, "interlude");
-  assert.equal(s.module, 3);
+  assert.equal(s.phase, "playing");
+  assert.equal(s.task, "signal");
+  assert.equal(s.module, 2);
 });
 test("decoy port rejects a dropped cell with a specific correction", () => {
   const wave = SECTORS[3].waves[0];
@@ -268,4 +279,45 @@ test("timeout ends mission without awarding completion bonus", () => {
   assert.equal(s.finished, false);
   assert.equal(s.score, 100);
   assert.equal(gradeGame(s), "C");
+});
+test("signal repair requires both hands, correct frequency, cable hold and open-palms transmit", () => {
+  const wave = SECTORS[0].waves[0];
+  let s: Game = { ...newGame(), phase: "playing", task: "signal" };
+  s = stepGame(s, observation({ pointer: wave.source }), 100);
+  assert.equal(s.paused, true);
+  assert.match(s.hint, /левую руку/);
+  const low = observation({ pointer: { x: 0.15, y: 0.9 } });
+  s = stepGame(s, observation({ pointer: wave.source, partner: low }), 100);
+  assert.equal(s.paused, false);
+  assert.match(s.hint, /подними левую руку/);
+  const high = observation({ pointer: { x: 0.15, y: 0.1 } });
+  s = stepGame(s, observation({ pointer: wave.source, partner: high }), 100);
+  assert.match(s.hint, /опусти левую руку/);
+  s = stepGame(s, observation({ pointer: wave.source, pinch: true, open: false, partner: low }), 100);
+  s = hold(s, observation({ pointer: wave.dock, pinch: true, open: false, partner: low }), 8);
+  assert.equal(s.wireAttached, false);
+  assert.match(s.hint, /подними левую руку/);
+  const tuned = observation({ pointer: { x: 0.15, y: 1 - signalFrequency(s) } });
+  s = hold(s, observation({ pointer: wave.dock, pinch: true, open: false, partner: tuned }), 7);
+  assert.equal(s.wireAttached, true);
+  s = hold(s, observation({ pointer: wave.dock, open: false, partner: tuned }), 10);
+  assert.equal(s.task, "signal");
+  assert.match(s.hint, /Раскрой обе ладони/);
+  s = hold(s, observation({ pointer: wave.dock, partner: tuned }), 10);
+  assert.equal(s.phase, "interlude");
+  assert.equal(s.module, 1);
+});
+test("early cable release resets only the wire; losing a hand pauses the timer", () => {
+  const wave = SECTORS[0].waves[0];
+  const tuned = observation({ pointer: { x: 0.15, y: 1 - signalFrequency(newGame()) } });
+  let s: Game = { ...newGame(), phase: "playing", task: "signal" };
+  s = stepGame(s, observation({ pointer: wave.source, pinch: true, open: false, partner: tuned }), 100);
+  s = stepGame(s, observation({ pointer: { x: .45, y: .5 }, pinch: false, partner: tuned }), 100);
+  assert.equal(s.carrying, false);
+  assert.deepEqual(s.cell, wave.source);
+  assert.match(s.hint, /Отпустил провод/);
+  const remaining = s.remaining;
+  s = stepGame(s, observation({ pointer: wave.source }), 100);
+  assert.equal(s.paused, true);
+  assert.equal(s.remaining, remaining);
 });

@@ -13,6 +13,8 @@ export type Observation = {
   swipeDx: number;
   swipeDy: number;
   fps: number;
+  /** The hand displayed on the left; the primary observation is on the right. */
+  partner?: Observation;
 };
 export const emptyObservation = (at: number): Observation => ({
   at,

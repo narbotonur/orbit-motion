@@ -4,11 +4,11 @@
 
 Browser camera project for ADMIT HACKATHON, Motion qualifier, September 28–30, 2026 (Astana, UTC+5). It has the ten-level ORBIT game and a separate experimental **ORBIT TRANSLATOR** mode.
 
-Restore an orbital station across **10 levels** using three hand gestures: pinch to carry a power cell, open palm to charge, open-hand swipe to clear debris. Calibration and hands-free practice precede the campaign. Each level has its own timer; later levels have multiple repair nodes, ordered debris lanes and misleading amber ports. Completed levels unlock the next level locally, so the player can return without repeating the entire campaign. No account required.
+Restore an orbital station across **10 levels** using a pinch to carry a power cell, an open palm to charge, and an open-hand swipe to clear debris. Each node now ends with a **two-hand signal repair**: the left hand tunes a frequency, the right hand drags a loose cable into its socket, and both open palms transmit the repaired signal. Calibration and hands-free practice precede the campaign. Each level has its own timer; later levels have multiple repair nodes, ordered debris lanes and misleading amber ports. Completed levels unlock the next level locally. No account required.
 
 ## Why this exists
 
-ORBIT is the first playable demonstration of a broader idea: use an ordinary webcam for simple hands-free learning interactions, with specific feedback when a movement is imprecise. The station story makes three reusable interaction primitives visible: **pinch → select and move**, **open-palm dwell → confirm**, **swipe → navigate**. The error mode demonstrates how a future lesson could teach the action instead of silently ignoring it. Local processing means the prototype works without accounts, wearables or a video upload service.
+ORBIT is the first playable demonstration of a broader idea: use an ordinary webcam for hands-free learning interactions, with specific feedback when a movement is imprecise. The station story makes four reusable patterns visible: **pinch → select and move**, **open-palm dwell → confirm**, **swipe → navigate**, and **two-hand coordination → tune one parameter while manipulating another**. The error mode demonstrates how a future lesson could teach the action instead of silently ignoring it. Local processing means the prototype works without accounts, wearables or a video upload service.
 
 The present evidence is limited to this browser game and its automated tests. Potential next uses are hands-free slide navigation and interactive classroom exercises, followed by per-user calibration and usability testing with actual learners. We do not claim accessibility for any disability, medical benefit, or universal gesture accuracy without those studies. The game is the concrete first scenario, not a finished education platform.
 
@@ -49,15 +49,15 @@ npm run preview
 ## How to play
 
 1. Click **Подключить камеру** and allow camera access. This browser permission is the only required mouse/touch step.
-2. Show one open hand, fully inside the frame, facing the camera. Hold it near the centre for calibration. The game uses one-hand tracking; TRANSLATOR separately enables two hands.
+2. Show one open hand, fully inside the frame, facing the camera. Hold it near the centre for calibration. The game tracks up to two hands; the opening practice still uses one.
 3. Follow the three practice tasks without a timer:
    - **Pinch:** move the hand cursor onto the energy cell on the left, join thumb and index fingertips, carry it to the right-hand port, then release.
    - **Open palm:** straighten all four fingers and keep the cursor in the port until its ring fills.
    - **Swipe:** sweep an open hand from left to right **on the mirrored screen**.
-4. Choose an unlocked level on the landing page, if desired. Close/lower the hand once, then hold an open palm over the start target. Repair ten systems from **communications** through **central core**. Targets move, later levels have two or three repair nodes, and ordered swipes must pass through the currently highlighted lane. Amber rings are false ports; use the green one.
+4. Choose an unlocked level on the landing page, if desired. Close/lower the hand once, then hold an open palm over the start target. After clearing debris, show **both hands**. Keep the left hand on the left of the mirrored screen and move it up/down until the white indicator enters the glowing green frequency band. With the right hand, pinch over the loose cable end, drag it into the socket, and hold the pinch and frequency steady until the contact locks. Open both palms and hold briefly to transmit. Repair ten systems from **communications** through **central core**. Targets move, later levels have two or three repair nodes, and ordered swipes must pass through the highlighted lane. Amber rings are false ports; use the green one.
 5. A level completion saves the next unlocked level on this device. If its timer runs out, use the gesture replay target to retry that level. Finish all ten for a campaign result, rank and local score. A new campaign can be started from level one.
 
-Use a well-lit room, one hand, and a stable camera around face height. Either hand can control the cursor. You can play seated. On phones, use the front camera and prop the device up; do not hold it in the controlling hand. Mouse controls for sound, fullscreen and exit are optional. Exit stops the camera.
+Use a well-lit room and a stable camera around face height. The first three actions can be played with either hand; signal repair requires both hands, kept apart and fully in frame. You can play seated. On phones, use the front camera and prop the device up; do not hold it in a controlling hand. Mouse controls for sound, fullscreen and exit are optional. Exit stops the camera.
 
 The camera preview is mirrored, so the cursor follows the direction you see. The central 76% of camera coordinates maps to the whole playfield, allowing edge targets without leaving the frame.
 
@@ -78,6 +78,10 @@ This is implemented in the game, not a separate demo or a generic recognition fa
 | Short/slow swipe                               | Continue farther to the right in one sweep                                                                               |
 | Correct swipe outside the highlighted lane     | Aim through the marked upper or lower lane; the task stays active                                                        |
 | Hand too small, too large, clipped, or missing | Move closer, farther away, inward, or show the whole hand respectively                                                   |
+| Left hand absent during signal repair         | Pause timer; ask to show the left hand fully before continuing                                                           |
+| Signal frequency too high or low               | Ask to lower or raise the left hand; the rail shows the target band                                                      |
+| Cable released before its contact locks       | Return the loose end to its start and explain that the pinch must be held in the socket                                  |
+| Cable attached but palms not opened           | Ask to open both palms to transmit the repaired signal                                                                  |
 
 Amber feedback highlights corrections; the camera skeleton, gesture label, cursor, progress ring and task state show what the system sees. Tracking loss pauses the mission timer and returns any carried cell; it never falsely counts as a successful release. Background tabs also pause active play. Early drops and wrong-lane sweeps count immediately; other corrections count after 800 ms if they persist. This number is gameplay feedback, not a biometric accuracy measure.
 
@@ -90,14 +94,14 @@ Webcam → ImageBitmap → Web Worker / Hand Landmarker → 21 landmarks
 
 MediaPipe supplies landmarks only. **Our code** implements gesture classification, temporal smoothing, thresholds, state transitions, spatial targets, hold times, hysteresis, cooldown and contextual corrections. No prebuilt MediaPipe game or gesture demo is embedded.
 
-- `src/vision/worker.ts`: CPU/WASM inference off the UI thread; one hand for the game, up to two for TRANSLATOR.
+- `src/vision/worker.ts`: CPU/WASM inference off the UI thread; up to two hands for both the game and TRANSLATOR.
 - `src/vision/camera.ts`: camera lifecycle, bounded frame pipeline (at most 20 FPS), failures and recovery.
 - `src/vision/gestures.ts`: mirrored cursor smoothing; palm-normalized pinch thresholds 0.30 / 0.48; four-finger extension; swipe displacement > 0.23 over 100–700 ms, vertical travel < 0.15, 1-second cooldown.
-- `src/game/engine.ts`: calibration → practice → ready → ten timed levels with automatic transitions, variable repair-node counts and targets → result/replay. Start/replay dwell 1.3 seconds.
+- `src/game/engine.ts`: calibration → practice → ready → ten timed levels with automatic transitions, variable repair-node counts and targets, and the compositional frequency/cable task → result/replay. Start/replay dwell 1.3 seconds.
 - `src/game/storage.ts`: unlocked level and up to eight results in localStorage, graceful fallback if blocked.
 - `src/ui/Board.tsx`: original SVG station, targets, progress and feedback.
 
-Scoring: cell 100, charge 100, final debris 150 base points; intermediate sweeps earn 50. Each successful task increases a combo multiplier by 0.25, up to 2×; an early drop or persistent correction resets the combo. Each completed level adds 5 points per whole second remaining on that level. Rank S requires a complete run with no corrections; A allows up to three, B up to eight; incomplete campaigns receive C. The record and level unlocks are **local to this browser**, not a secure global leaderboard. Tracking-loss pauses prioritize usable play over competitive time enforcement.
+Scoring: cell 100, charge 100, final debris 150, signal repair 200 base points; intermediate sweeps earn 50. Each successful task increases a combo multiplier by 0.25, up to 2×; an early drop or persistent correction resets the combo. Each completed level adds 5 points per whole second remaining on that level. Rank S requires a complete run with no corrections; A allows up to three, B up to eight; incomplete campaigns receive C. The record and level unlocks are **local to this browser**, not a secure global leaderboard. Tracking-loss pauses prioritize usable play over competitive time enforcement.
 
 ## Checks
 
