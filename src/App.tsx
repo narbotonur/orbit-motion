@@ -104,6 +104,9 @@ export default function App() {
   useEffect(() => {
     document.documentElement.lang = locale;
     document.title = locale === "en" ? "ORBIT — the mission is in your hands" : "ORBIT — миссия в твоих руках";
+    document.querySelector('meta[name="description"]')?.setAttribute("content", locale === "en"
+      ? "ORBIT is a 10-level webcam-controlled game with specific movement feedback. Play in English or Russian. ORBIT LABS explores a personal gesture vocabulary."
+      : "ORBIT — игра на 10 уровней с управлением через камеру и конкретными подсказками при ошибках. Доступна на русском и английском. ORBIT LABS — экспериментальный словарь жестов.");
   }, [locale]);
   useEffect(() => {
     soundRef.current = !muted;

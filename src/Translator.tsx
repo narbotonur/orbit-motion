@@ -67,6 +67,9 @@ export default function Translator() {
     document.title = locale === "en"
       ? "ORBIT LABS — personal gesture vocabulary"
       : "ORBIT LABS — персональный словарь жестов";
+    document.querySelector('meta[name="description"]')?.setAttribute("content", locale === "en"
+      ? "ORBIT LABS is an experimental personal gesture-to-text vocabulary. It is not a validated sign-language translator."
+      : "ORBIT LABS — экспериментальный персональный словарь жестов, а не проверенный переводчик жестового языка.");
   }, [locale]);
 
   const stop = useCallback(() => {

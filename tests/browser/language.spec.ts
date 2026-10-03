@@ -10,6 +10,7 @@ async function untranslated(page: import("@playwright/test").Page) {
 test("English game keeps landing, calibration and feedback in English", async ({ page }) => {
   await page.goto("/?test=1&lang=en");
   await expect(page.getByRole("button", { name: "Connect camera" })).toBeVisible();
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /10-level webcam-controlled game/);
   expect(await untranslated(page)).toEqual([]);
   await page.screenshot({ path: ".ops/screens/english-landing.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -54,6 +55,7 @@ test("English game keeps landing, calibration and feedback in English", async ({
   await expect(page.getByRole("button", { name: "Connect camera" })).toBeVisible();
   await page.getByRole("button", { name: "Переключить на русский" }).click();
   await expect(page.getByRole("button", { name: "Подключить камеру" })).toBeVisible();
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /игра на 10 уровней/);
   await page.reload();
   await expect(page.getByRole("button", { name: "Подключить камеру" })).toBeVisible();
 });
@@ -61,6 +63,7 @@ test("English game keeps landing, calibration and feedback in English", async ({
 test("experimental lab is separate and has an English interface", async ({ page }) => {
   await page.goto("/?mode=translator&lang=en");
   await expect(page.getByRole("heading", { name: "Show a gesture." })).toBeVisible();
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /not a validated sign-language translator/);
   expect(await untranslated(page)).toEqual([]);
   await expect(page.getByText("not a full International Sign translator")).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
