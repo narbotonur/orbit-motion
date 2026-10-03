@@ -11,6 +11,8 @@ import {
 } from "./translator/model.ts";
 import type { FeatureFrame, GestureTemplate } from "./translator/model.ts";
 import { readVocabulary, saveVocabulary, vocabularyLimit } from "./translator/storage.ts";
+import { localizeTree, preferredLocale, saveLocale, translateText } from "./i18n.tsx";
+import type { Locale } from "./i18n.tsx";
 
 const connections = [
   [0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8],
@@ -25,6 +27,7 @@ const wait = (ms: number, signal: AbortSignal) => new Promise<void>((resolve, re
 });
 
 export default function Translator() {
+  const [locale, setLocale] = useState<Locale>(preferredLocale);
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [cameraStatus, setCameraStatus] = useState("Камера не подключена");
@@ -57,9 +60,14 @@ export default function Translator() {
   const testOverride = useRef(false);
 
   useEffect(() => {
-    document.title = "ORBIT TRANSLATOR — персональный словарь жестов";
     return () => { recordAbort.current?.abort(); cameraAbort.current?.abort(); };
   }, []);
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    document.title = locale === "en"
+      ? "ORBIT LABS — personal gesture vocabulary"
+      : "ORBIT LABS — персональный словарь жестов";
+  }, [locale]);
 
   const stop = useCallback(() => {
     recordAbort.current?.abort();
@@ -243,7 +251,7 @@ export default function Translator() {
   };
 
   const remove = (template: GestureTemplate) => {
-    if (!window.confirm(`Удалить жест «${template.label}» с этого устройства?`)) return;
+    if (!window.confirm(translateText(`Удалить жест «${template.label}» с этого устройства?`, locale))) return;
     const updated = templatesRef.current.filter((item) => item.id !== template.id);
     if (!saveVocabulary(updated)) {
       setStorageWarning("Не удалось изменить словарь в браузере.");
@@ -257,15 +265,15 @@ export default function Translator() {
     if (!words.length || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(words.join(" "));
-    utterance.lang = "ru-RU";
+    utterance.lang = locale === "en" ? "en-US" : "ru-RU";
     window.speechSynthesis.speak(utterance);
   };
 
-  return (
+  return localizeTree((
     <div className="translator-app">
       <header className="site-header">
-        <a className="wordmark" href="/" aria-label="ORBIT — главная"><OrbitMark /><span>ORBIT<span className="wordmark-dot">.</span></span></a>
-        <div className="header-right"><span className="header-label mono">TRANSLATOR / PERSONAL VOCABULARY</span><a className="text-button" href="/">← Вернуться к игре</a></div>
+        <a className="wordmark" href={`/?lang=${locale}`} aria-label="ORBIT — главная"><OrbitMark /><span>ORBIT<span className="wordmark-dot">.</span></span></a>
+        <div className="header-right"><span className="header-label mono">ORBIT LABS / TRANSLATOR</span><button className="language-toggle" type="button" onClick={() => { const next = locale === "ru" ? "en" : "ru"; saveLocale(next); setLocale(next); }} aria-label={locale === "ru" ? "Switch to English" : "Переключить на русский"}>{locale === "ru" ? "EN" : "RU"}</button><a className="text-button" href={`/?lang=${locale}`}>← Вернуться к игре</a></div>
       </header>
       <main className="translator-main">
         <section className="translator-intro">
@@ -295,7 +303,7 @@ export default function Translator() {
               {connected ? <button className="translator-secondary" onClick={stop}>Отключить</button> : <button className="primary-button" disabled={connecting} onClick={connect}>{connecting ? "Подключаем…" : "Подключить камеру"}</button>}
             </div>
             {cameraFailure && <p className="translator-error" role="alert">{cameraFailure}</p>}
-            <div className="translator-feedback" role="status"><span>БОРТОВОЙ ПОМОЩНИК</span><p>{recording ? recordingStatus : feedback}</p>{lastMatch && !recording && <strong>Распознано: {lastMatch}</strong>}</div>
+            <div className="translator-feedback" role="status"><span>БОРТОВОЙ ПОМОЩНИК</span><p>{recording ? recordingStatus : feedback}</p>{lastMatch && !recording && <strong>Распознано: <span data-no-translate>{lastMatch}</span></strong>}</div>
           </section>
           <div className="translator-side">
             <section className="translator-panel">
@@ -309,18 +317,18 @@ export default function Translator() {
             </section>
             <section className="translator-panel">
               <div className="translator-panel-header"><div><span className="mono">03 / СЛОВАРЬ</span><h2>Твои жесты</h2></div></div>
-              {!templates.length ? <p className="translator-empty">Словарь пуст. Запиши первый жест, чтобы начать перевод.</p> : <ul className="translator-vocabulary">{templates.map((item) => <li key={item.id}><div><strong>{item.label}</strong><small>{item.handCount === 2 ? "две руки" : "одна рука"} · 3 записи</small></div><button onClick={() => remove(item)} aria-label={`Удалить жест ${item.label}`}>Удалить</button></li>)}</ul>}
+              {!templates.length ? <p className="translator-empty">Словарь пуст. Запиши первый жест, чтобы начать перевод.</p> : <ul className="translator-vocabulary">{templates.map((item) => <li key={item.id}><div><strong data-no-translate>{item.label}</strong><small>{item.handCount === 2 ? "две руки" : "одна рука"} · 3 записи</small></div><button onClick={() => remove(item)} aria-label={`Удалить жест ${item.label}`}>Удалить</button></li>)}</ul>}
               <small className="translator-privacy">На этом устройстве сохраняются введённое слово и координаты рук, но не фото или видео. Словарь другого человека может требовать отдельной записи.</small>
             </section>
           </div>
           <section className="translator-output translator-panel">
             <div className="translator-panel-header"><div><span className="mono">04 / СООБЩЕНИЕ</span><h2>Текст из жестов</h2></div><small>{words.length} слов</small></div>
-            <p className="translator-sentence" aria-live="polite">{words.join(" ") || "Покажи записанный жест — слово появится здесь."}</p>
+            <p className="translator-sentence" aria-live="polite" data-no-translate={words.length > 0 ? true : undefined}>{words.join(" ") || "Покажи записанный жест — слово появится здесь."}</p>
             <div className="translator-output-actions"><button className="translator-secondary" disabled={!words.length} onClick={() => setWords((current) => current.slice(0, -1))}>Убрать последнее</button><button className="translator-secondary" disabled={!words.length} onClick={() => setWords([])}>Очистить</button><button className="primary-button" disabled={!words.length || !("speechSynthesis" in window)} onClick={speak}>Озвучить</button></div>
           </section>
         </div>
         <p className="translator-footer">ORBIT TRANSLATOR · прототип персонального словаря, а не средство профессионального перевода. Для реального жестового языка необходимы данные и оценка его носителями.</p>
       </main>
     </div>
-  );
+  ), locale);
 }

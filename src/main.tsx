@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import Translator from "./Translator.tsx";
+import { localizeTree, preferredLocale } from "./i18n.tsx";
 import "./styles.css";
 
 class ErrorBoundary extends React.Component<
@@ -14,7 +15,7 @@ class ErrorBoundary extends React.Component<
   }
   render() {
     if (this.state.failed)
-      return (
+      return localizeTree((
         <main className="fatal-error">
           <h1>Связь прервалась</h1>
           <p>
@@ -25,7 +26,7 @@ class ErrorBoundary extends React.Component<
             Перезагрузить
           </button>
         </main>
-      );
+      ), preferredLocale());
     return this.props.children;
   }
 }

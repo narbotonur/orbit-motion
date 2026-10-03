@@ -15,6 +15,8 @@ import { readRuns, readUnlocked, saveRun, unlockLevel } from "./game/storage.ts"
 import { unlockAudio, chime } from "./game/audio.ts";
 import { Board, Station } from "./ui/Board.tsx";
 import { Icon, OrbitMark } from "./ui/Icons.tsx";
+import { localizeTree, preferredLocale, saveLocale } from "./i18n.tsx";
+import type { Locale } from "./i18n.tsx";
 
 const connections = [
   [0, 1],
@@ -67,6 +69,7 @@ const gestures = [
 ];
 
 export default function App() {
+  const [locale, setLocale] = useState<Locale>(preferredLocale);
   const [active, setActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
@@ -98,6 +101,10 @@ export default function App() {
     setHand(handRef.current);
   }, []);
   useEffect(() => () => aborter.current?.abort(), []);
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    document.title = locale === "en" ? "ORBIT — the mission is in your hands" : "ORBIT — миссия в твоих руках";
+  }, [locale]);
   useEffect(() => {
     soundRef.current = !muted;
   }, [muted]);
@@ -242,8 +249,9 @@ export default function App() {
   const sector = currentSector(game);
   const currentTask =
     game.task === "carry" ? 0 : game.task === "charge" ? 1 : game.task === "clear" ? 2 : 3;
+  const feedbackNeedsAdjustment = game.correction && game.phase !== "result";
 
-  return (
+  return localizeTree((
     <div className={`app ${active ? "in-mission" : ""}`}>
       <header className="site-header">
         <a
@@ -262,6 +270,17 @@ export default function App() {
         </a>
         <div className="header-right">
           <span className="header-label mono">OYSAN / ADMIT HACKATHON</span>
+          <button
+            className="language-toggle"
+            type="button"
+            onClick={() => {
+              const next = locale === "ru" ? "en" : "ru";
+              saveLocale(next);
+              setLocale(next);
+            }}
+            aria-label={locale === "ru" ? "Switch to English" : "Переключить на русский"}
+            title={locale === "ru" ? "Switch to English" : "Переключить на русский"}
+          >{locale === "ru" ? "EN" : "RU"}</button>
           {active ? (
             <>
               <button
@@ -288,7 +307,6 @@ export default function App() {
             </>
           ) : (
             <>
-              <a className="text-button" href="/?mode=translator">ORBIT TRANSLATOR <span>↗</span></a>
               <a
                 className="text-button"
                 href="https://github.com/narbotonur/orbit-motion"
@@ -367,10 +385,6 @@ export default function App() {
                 <span className="mono">01 — 10</span>
               </div>
             </div>
-          </section>
-          <section className="translator-promo">
-            <div><span className="eyebrow">НОВЫЙ ЭКСПЕРИМЕНТ / ДВЕ РУКИ</span><h2>ORBIT TRANSLATOR</h2><p>Запиши собственные жесты и превращай их в слова в реальном времени. Это персональный словарь, не готовый перевод жестового языка.</p></div>
-            <a href="/?mode=translator" className="primary-button">Открыть переводчик <Icon name="arrow" size={18} /></a>
           </section>
           <section className="campaign-section" aria-labelledby="campaign-title">
             <div className="section-heading">
@@ -484,6 +498,9 @@ export default function App() {
               Лучше начать на ноутбуке · Камера на уровне лица · Ровный свет
             </span>
             <span className="mono">ADMIT ’26</span>
+            <a className="landing-lab-link" href={`/?mode=translator&lang=${locale}`}>
+              ORBIT LABS · Персональный словарь жестов (эксперимент) ↗
+            </a>
           </footer>
         </main>
       ) : (
@@ -593,14 +610,14 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <Board game={game} hand={hand} best={best} />
+              <Board game={game} hand={hand} best={best} locale={locale} />
             )}
             <div
-              className={`feedback-bar ${game.correction ? "needs-adjustment" : ""}`}
+              className={`feedback-bar ${feedbackNeedsAdjustment ? "needs-adjustment" : ""}`}
               role="status"
             >
               <div className="feedback-symbol">
-                <Icon name={game.correction ? "hand" : "check"} size={21} />
+                <Icon name={feedbackNeedsAdjustment ? "hand" : "check"} size={21} />
               </div>
               <div>
                 <span>
@@ -608,11 +625,17 @@ export default function App() {
                     ? "ПОДКЛЮЧЕНИЕ"
                     : error
                       ? "КАМЕРА НЕДОСТУПНА"
-                      : game.correction
+                      : game.phase === "result"
+                        ? game.finished ? "МИССИЯ ЗАВЕРШЕНА" : "ВРЕМЯ ВЫШЛО"
+                      : feedbackNeedsAdjustment
                         ? "ПОПРАВЬ ДВИЖЕНИЕ"
                         : "БОРТОВОЙ ПОМОЩНИК"}
                 </span>
-                <p>{loading ? status : error || game.hint}</p>
+                <p>{loading ? status : error || (game.phase === "result"
+                  ? game.finished
+                    ? "Станция восстановлена. Посмотри результат или начни новую кампанию."
+                    : "Время уровня вышло. Покажи раскрытую ладонь на кнопке повтора."
+                  : game.hint)}</p>
               </div>
               {!loading && !error && <span className="feedback-dot" />}
             </div>
@@ -793,5 +816,5 @@ export default function App() {
         </main>
       )}
     </div>
-  );
+  ), locale);
 }

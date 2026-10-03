@@ -6,6 +6,7 @@ export default defineConfig({
   workers: 1,
   use: {
     baseURL: "http://127.0.0.1:5180",
+    locale: "ru-RU",
     viewport: { width: 1440, height: 1000 },
     permissions: ["camera"],
     launchOptions: {

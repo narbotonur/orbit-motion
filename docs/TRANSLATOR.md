@@ -1,6 +1,6 @@
 # ORBIT TRANSLATOR — personal gesture-to-text prototype
 
-Open `/?mode=translator` (or use the link on the game's landing page). This is a second mode of the same browser app. The ten-level game is preserved.
+Open `/?mode=translator` from the **ORBIT LABS** link in the game's footer. This is a separate experiment within the same browser app, not part of the main ten-level game. The language switch supports Russian and English in both modes.
 
 ## What works
 

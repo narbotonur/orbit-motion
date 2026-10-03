@@ -14,6 +14,8 @@ import {
 import type { Game } from "../game/engine.ts";
 import type { Observation } from "../vision/gestures.ts";
 import { Icon, OrbitMark } from "./Icons.tsx";
+import { localizeTree } from "../i18n.tsx";
+import type { Locale } from "../i18n.tsx";
 
 const stars = Array.from({ length: 36 }, (_, i) => ({
   x: (i * 137.51 + 39) % 100,
@@ -117,10 +119,12 @@ export function Board({
   game,
   hand,
   best,
+  locale,
 }: {
   game: Game;
   hand: Observation;
   best: number;
+  locale: Locale;
 }) {
   const mode = game.phase;
   const tutorial = mode === "tutorial";
@@ -140,7 +144,7 @@ export function Board({
         ? wave.chargeMs
         : 1300;
   const progress = Math.min(1, game.hold / holdDuration);
-  return (
+  return localizeTree((
     <div
       className={`playfield phase-${mode} ${tasking ? `task-${game.task}` : ""}`}
       data-testid="playfield"
@@ -429,5 +433,5 @@ export function Board({
         </div>
       )}
     </div>
-  );
+  ), locale);
 }

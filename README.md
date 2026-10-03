@@ -4,6 +4,8 @@
 
 Browser camera project for ADMIT HACKATHON, Motion qualifier, September 28–30, 2026 (Astana, UTC+5). It has the ten-level ORBIT game and a separate experimental **ORBIT TRANSLATOR** mode.
 
+**After the hackathon:** the submitted build is preserved at tag `hackathon-2026-submission` (`7030b99`). The team-reported jury result was **93/100**. This branch adds a Russian/English interface and moves the personal gesture vocabulary to **ORBIT LABS**, keeping the game as the main experience. See the [result and release decisions](docs/HACKATHON_RESULT.md).
+
 Restore an orbital station across **10 levels** using a pinch to carry a power cell, an open palm to charge, and an open-hand swipe to clear debris. Each node now ends with a **two-hand signal repair**: the left hand tunes a frequency, the right hand drags a loose cable into its socket, and both open palms transmit the repaired signal. Calibration and hands-free practice precede the campaign. Each level has its own timer; later levels have multiple repair nodes, ordered debris lanes and misleading amber ports. Completed levels unlock the next level locally. No account required.
 
 ## Why this exists
@@ -16,7 +18,7 @@ The [product vision and validation roadmap](docs/PRODUCT_VISION.md) explain how 
 
 ## ORBIT TRANSLATOR (experimental second mode)
 
-Open `/?mode=translator`. Record a personal one- or two-hand gesture three times, attach a word or phrase, then show it again to add that label to a message. The browser can speak the message aloud. Up to 12 templates are stored locally as normalized landmark coordinates; no camera image or video is saved. Unknown or ambiguous gestures are rejected with guidance. The [mode guide and limitations](docs/TRANSLATOR.md) explain the training and recognition pipeline.
+Open `/?mode=translator` from the small ORBIT LABS link in the landing-page footer. Record a personal one- or two-hand gesture three times, attach a word or phrase, then show it again to add that label to a message. The browser can speak the message aloud. Up to 12 templates are stored locally as normalized landmark coordinates; no camera image or video is saved. Unknown or ambiguous gestures are rejected with guidance. The [mode guide and limitations](docs/TRANSLATOR.md) explain the training and recognition pipeline.
 
 This is a **personal gesture-to-text vocabulary**, not a validated translation system for International Sign or any national sign language. International Sign is not a universal fixed dictionary; real sign languages also use facial and body information that this prototype does not yet process. The working game remains the primary complete hackathon scenario while this second mode explores the longer-term communication use case.
 
@@ -39,6 +41,8 @@ npm run dev
 ```
 
 Open `http://localhost:5180`. `npm ci` downloads a pinned Google Hand Landmarker model and copies MediaPipe WASM to `public/vision`. Production serves those files from the same origin. First installation requires internet; no external inference service is used. Camera permission needs HTTPS or localhost.
+
+The game and ORBIT LABS support Russian and English. The header switch remembers your choice locally; `?lang=en` or `?lang=ru` selects a language directly. The original deterministic game engine retains Russian source messages for test stability; its presentation layer translates them without changing gameplay rules.
 
 ```sh
 npm test
